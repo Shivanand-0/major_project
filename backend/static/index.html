@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vidarbha Virtual Air Quality Grid — Spatiotemporal ML Estimation</title>
+    <meta name="description" content="Operational AI Virtual Sensor Network mapping ECMWF meteorology and Copernicus CAMS chemical tracers to physical CPCB India NAQI standards across Vidarbha.">
+
+    <!-- Google Fonts: Outfit & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <!-- Leaflet CSS for Geospatial Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+    <!-- Custom Premium Styles -->
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body class="dark-theme">
+    <!-- Ambient Glow Background Gradients -->
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+    <div class="ambient-glow glow-3"></div>
+
+    <div class="app-layout">
+        <!-- Top Navbar -->
+        <header class="app-header">
+            <div class="header-left">
+                <div class="brand-badge">
+                    <span class="pulsing-radar"></span>
+                    <span class="brand-sub">VIDARBHA AI GRID</span>
+                </div>
+                <h1 class="header-title">Virtual Spatiotemporal Air Quality System</h1>
+                <span class="model-badge">XGBoost Champion · R² 0.9690 · MAE ±6.01</span>
+            </div>
+
+            <div class="header-right">
+                <div class="live-clock">
+                    <span class="clock-label">LIVE IST</span>
+                    <span id="current-ist-time" class="clock-val">--:--:--</span>
+                </div>
+                <button id="refresh-btn" class="glass-btn" title="Refresh Live Satellite & Ground Data">
+                    <svg id="refresh-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.19"/>
+                    </svg>
+                    <span>Fetch Live Feeds</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- KPI Status Ribbon -->
+        <section class="kpi-ribbon">
+            <div class="kpi-card">
+                <div class="kpi-icon icon-nodes">🌐</div>
+                <div class="kpi-meta">
+                    <span class="kpi-title">Active Grid Nodes</span>
+                    <span class="kpi-value">4 Nodes</span>
+                    <span class="kpi-hint">2 Physical CPCB + 2 Virtual AI</span>
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon icon-aqi">🌫️</div>
+                <div class="kpi-meta">
+                    <span class="kpi-title">Vidarbha Regional Avg</span>
+                    <span id="regional-avg-aqi" class="kpi-value text-accent">--</span>
+                    <span id="regional-avg-category" class="kpi-hint">Analyzing...</span>
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon icon-acc">🎯</div>
+                <div class="kpi-meta">
+                    <span class="kpi-title">Model Precision</span>
+                    <span class="kpi-value text-emerald">±6.01 pts</span>
+                    <span class="kpi-hint">93.1% error reduction vs IDW</span>
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon icon-station">📡</div>
+                <div class="kpi-meta">
+                    <span class="kpi-title">CPCB Ground Status</span>
+                    <span class="kpi-value text-blue">Verified Active</span>
+                    <span class="kpi-hint">Official CPCB CCR Portal Feed</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Dashboard Split: Map & Interactive Virtual Inspector -->
+        <main class="dashboard-grid">
+            <!-- Left Side: Geospatial Map Canvas -->
+            <section class="glass-panel map-panel">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">Geospatial Sensor Grid & Spatial Mesh</h2>
+                        <p class="panel-subtitle">Click anywhere on the map to deploy a point Virtual Sensor at those coordinates</p>
+                    </div>
+                    <div class="map-controls">
+                        <button id="toggle-heatmap" class="glass-pill-btn active">Spatial Mesh</button>
+                        <button id="reset-view" class="glass-pill-btn">Reset View</button>
+                    </div>
+                </div>
+
+                <div id="vidarbha-map" class="map-container"></div>
+
+                <!-- Map Legend -->
+                <div class="map-legend">
+                    <div class="legend-item"><span class="legend-dot physical"></span> Physical Station (CPCB/MPCB)</div>
+                    <div class="legend-item"><span class="legend-dot virtual"></span> Virtual AI Node (Zero Sensors)</div>
+                    <div class="legend-item"><span class="legend-dot custom"></span> Interactive Click Inspector</div>
+                </div>
+            </section>
+
+            <!-- Right Side: Custom Virtual Sensor Inspector / Point Deployment -->
+            <section class="glass-panel inspector-panel">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">Point Virtual Sensor Deployment</h2>
+                        <p class="panel-subtitle">Simulate micro-scale air quality at any geographic coordinate</p>
+                    </div>
+                    <span id="active-point-badge" class="badge-tag">READY</span>
+                </div>
+
+                <div class="inspector-content">
+                    <form id="prediction-form" class="inspector-form">
+                        <div class="form-row">
+                            <div class="input-group">
+                                <label for="input-lat">Latitude (°N)</label>
+                                <input type="number" id="input-lat" step="0.0001" min="18.0" max="23.0" value="21.1458" required>
+                            </div>
+                            <div class="input-group">
+                                <label for="input-lon">Longitude (°E)</label>
+                                <input type="number" id="input-lon" step="0.0001" min="75.0" max="82.0" value="79.0882" required>
+                            </div>
+                        </div>
+
+                        <!-- Micro-Meteorology Overrides (Collapsible) -->
+                        <details class="sim-details">
+                            <summary class="details-summary">
+                                <span>Advanced Atmospheric Tuning (Optional)</span>
+                                <span class="summary-sub">Override ECMWF live defaults</span>
+                            </summary>
+                            <div class="sim-grid">
+                                <div class="input-group small">
+                                    <label for="input-temp">Temp (°C)</label>
+                                    <input type="number" id="input-temp" step="0.5" placeholder="Live">
+                                </div>
+                                <div class="input-group small">
+                                    <label for="input-rh">Humidity (%)</label>
+                                    <input type="number" id="input-rh" min="5" max="100" placeholder="Live">
+                                </div>
+                                <div class="input-group small">
+                                    <label for="input-ws">Wind (km/h)</label>
+                                    <input type="number" id="input-ws" step="0.5" min="0" placeholder="Live">
+                                </div>
+                                <div class="input-group small">
+                                    <label for="input-pm25">CAMS PM2.5</label>
+                                    <input type="number" id="input-pm25" step="1" min="0" placeholder="Live">
+                                </div>
+                            </div>
+                        </details>
+
+                        <button type="submit" id="simulate-btn" class="glow-btn">
+                            <span class="btn-text">Estimate Ground AQI</span>
+                            <span class="btn-sub">Runs 49-Feature Inference</span>
+                        </button>
+                    </form>
+
+                    <!-- Instantaneous Prediction Result Box -->
+                    <div id="inspector-result" class="inspector-result-card hidden">
+                        <div class="result-header">
+                            <div>
+                                <span class="result-loc-name" id="res-location-title">Nagpur Region</span>
+                                <span class="result-coords" id="res-coords">21.1458°N, 79.0882°E</span>
+                            </div>
+                            <span id="res-category-badge" class="cat-pill">Satisfactory</span>
+                        </div>
+
+                        <div class="result-body">
+                            <div class="gauge-box">
+                                <div class="gauge-value" id="res-aqi-val">73.9</div>
+                                <div class="gauge-label">INDIA NAQI</div>
+                            </div>
+
+                            <div class="result-stats">
+                                <div class="stat-line">
+                                    <span class="stat-lbl">95% Confidence Interval:</span>
+                                    <span class="stat-v" id="res-ci">[67.9 – 79.9]</span>
+                                </div>
+                                <div class="stat-line">
+                                    <span class="stat-lbl">Dominant Pollutant:</span>
+                                    <span class="stat-v text-accent" id="res-dominant">CO</span>
+                                </div>
+                                <div class="stat-line">
+                                    <span class="stat-lbl">Health Advisory:</span>
+                                    <span class="stat-advisory" id="res-advisory">Minor breathing discomfort to sensitive people.</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Live Observation Timestamp Badge -->
+                        <div class="obs-timestamp-bar">
+                            <span class="pulse-dot"></span>
+                            <span>Live Observation Ingested: <b id="res-obs-time">--:-- IST</b> (Zero Fallback)</span>
+                            <span class="latency-tag" id="res-latency">120ms</span>
+                        </div>
+
+                        <!-- Full Real-Time Live Features Breakdown -->
+                        <div class="features-accordion">
+                            <!-- Chemical Tracers -->
+                            <div class="feature-group">
+                                <div class="f-group-title">🌫️ Live Chemical Tracers (Copernicus CAMS)</div>
+                                <div class="f-grid">
+                                    <div class="f-item"><span class="f-k">PM2.5</span><span class="f-v" id="f-pm25">-- µg/m³</span></div>
+                                    <div class="f-item"><span class="f-k">PM10</span><span class="f-v" id="f-pm10">-- µg/m³</span></div>
+                                    <div class="f-item"><span class="f-k">NO₂</span><span class="f-v" id="f-no2">-- µg/m³</span></div>
+                                    <div class="f-item"><span class="f-k">SO₂</span><span class="f-v" id="f-so2">-- µg/m³</span></div>
+                                    <div class="f-item"><span class="f-k">CO</span><span class="f-v" id="f-co">-- µg/m³</span></div>
+                                    <div class="f-item"><span class="f-k">O₃</span><span class="f-v" id="f-o3">-- µg/m³</span></div>
+                                </div>
+                            </div>
+
+                            <!-- Weather Parameters -->
+                            <div class="feature-group">
+                                <div class="f-group-title">⛅ Live Meteorology (ECMWF Operational)</div>
+                                <div class="f-grid">
+                                    <div class="f-item"><span class="f-k">Temperature</span><span class="f-v" id="f-temp">--°C</span></div>
+                                    <div class="f-item"><span class="f-k">Humidity</span><span class="f-v" id="f-rh">--%</span></div>
+                                    <div class="f-item"><span class="f-k">Dew Spread</span><span class="f-v" id="f-dew">--°C</span></div>
+                                    <div class="f-item"><span class="f-k">Pressure</span><span class="f-v" id="f-pressure">-- hPa</span></div>
+                                    <div class="f-item"><span class="f-k">Wind Velocity</span><span class="f-v" id="f-wind">-- km/h</span></div>
+                                    <div class="f-item"><span class="f-k">Solar Rad</span><span class="f-v" id="f-solar">-- W/m²</span></div>
+                                </div>
+                            </div>
+
+                            <!-- Spatial Transport Physics -->
+                            <div class="feature-group">
+                                <div class="f-group-title">🛣️ Spatial Transport & Infrastructure</div>
+                                <div class="f-grid">
+                                    <div class="f-item"><span class="f-k">Road Density</span><span class="f-v" id="f-roaddensity">-- /km²</span></div>
+                                    <div class="f-item"><span class="f-k">Total Roads</span><span class="f-v" id="f-totalroads">--</span></div>
+                                    <div class="f-item"><span class="f-k">Dist to Nagpur</span><span class="f-v" id="f-dist-nagpur">-- km</span></div>
+                                    <div class="f-item"><span class="f-k">Dist to Chandrapur</span><span class="f-v" id="f-dist-chandra">-- km</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Grid Nodes Showcase (Nagpur, Chandrapur, Amravati, Akola) -->
+        <section class="nodes-section">
+            <div class="section-title-bar">
+                <div>
+                    <h2 class="section-title">Vidarbha Grid Node Benchmarking</h2>
+                    <p class="section-subtitle">Real-time side-by-side comparison: Physical Ground Stations vs. AI Virtual Sensors</p>
+                </div>
+                <div class="filter-pills">
+                    <span class="filter-pill active">All 4 Nodes</span>
+                </div>
+            </div>
+
+            <div id="nodes-container" class="nodes-grid">
+                <!-- Dynamically populated via app.js -->
+                <div class="loading-nodes">
+                    <span class="spinner"></span>
+                    <p>Ingesting live CAMS satellite & CPCB ground telemetry...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Official CPCB NAQI Standards Scale -->
+        <footer class="cpcb-standards-footer">
+            <h3 class="standards-title">Official Central Pollution Control Board (CPCB) NAQI Breakpoints</h3>
+            <div class="standards-bar">
+                <div class="scale-segment good" title="0 - 50: Good">
+                    <span class="scale-range">0 - 50</span>
+                    <span class="scale-label">Good</span>
+                </div>
+                <div class="scale-segment satisfactory" title="51 - 100: Satisfactory">
+                    <span class="scale-range">51 - 100</span>
+                    <span class="scale-label">Satisfactory</span>
+                </div>
+                <div class="scale-segment moderate" title="101 - 200: Moderate">
+                    <span class="scale-range">101 - 200</span>
+                    <span class="scale-label">Moderate</span>
+                </div>
+                <div class="scale-segment poor" title="201 - 300: Poor">
+                    <span class="scale-range">201 - 300</span>
+                    <span class="scale-label">Poor</span>
+                </div>
+                <div class="scale-segment very-poor" title="301 - 400: Very Poor">
+                    <span class="scale-range">301 - 400</span>
+                    <span class="scale-label">Very Poor</span>
+                </div>
+                <div class="scale-segment severe" title="401 - 500: Severe">
+                    <span class="scale-range">401 - 500</span>
+                    <span class="scale-label">Severe</span>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- Custom Application Logic -->
+    <script src="/static/app.js"></script>
+</body>
+</html>

@@ -50,5 +50,5 @@ Categories: Good (0-50) | Satisfactory (51-100) | Moderate (101-200) | Poor (201
 4. `step_04_data_split/`: Partition monitored ground training (17,520 rows) + unmonitored deployment set (17,520 rows).
 5. `step_05_batch_and_train/`: Fit LightGBM and XGBoost models (COMPLETE - Champion: XGBoost R²=0.9690).
 6. `step_06_validation/`: Benchmarks vs IDW baseline (COMPLETE - 93.1% error reduction over IDW).
-7. `step_07_serialization/`: Package immutable artifacts (`pipeline_model.joblib`).
+7. `step_07_serialization/`: Package immutable artifacts (COMPLETE - `pipeline_model.joblib` 4.87 MB).
 8. `step_08_backend_api/`: FastAPI microservice and interactive map interface.

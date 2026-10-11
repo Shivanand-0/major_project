@@ -36,10 +36,11 @@
                     </div>
                 </div>
 
-                <!-- 2-Page Segmented Tab Switcher -->
+                <!-- 3-Page Segmented Tab Switcher -->
                 <nav class="segmented-nav" aria-label="Page Selection">
                     <button class="nav-segment-btn" id="tab-check-location" data-page="page-check-location">Check Location</button>
                     <button class="nav-segment-btn active" id="tab-popular-cities" data-page="page-popular-cities">Popular Cities</button>
+                    <button class="nav-segment-btn" id="tab-pan-india-hcho" data-page="page-pan-india-hcho">🛰️ Pan-India HCHO Hotspots</button>
                 </nav>
 
                 <div class="header-actions">
@@ -554,6 +555,300 @@
                                 <span>🚪 Stay indoors safely</span>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- =================================================================== -->
+            <!-- PAGE 3: PAN-INDIA HCHO HOTSPOTS & BIOMASS BURNING SURVEILLANCE     -->
+            <!-- =================================================================== -->
+            <section id="page-pan-india-hcho" class="page-view hidden">
+                <div class="page-header-row">
+                    <div>
+                        <div class="section-tag-row">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+                            <span>SATELLITE REMOTE SENSING & ATMOSPHERIC CHEMISTRY</span>
+                        </div>
+                        <h1 class="page-title">Pan-India HCHO Hotspots & Biomass Burning Surveillance</h1>
+                        <p class="page-subtitle">Sentinel-5P TROPOMI tropospheric formaldehyde (HCHO) observations mapped with NASA VIIRS/MODIS active fires and ECMWF ERA5 wind transport dispersion.</p>
+                    </div>
+
+                    <div class="status-pill-synced">
+                        <span class="live-dot pulse"></span>
+                        <span>Satellite & ERA5 Synced · India Domain</span>
+                    </div>
+                </div>
+
+                <!-- 4 Top Scientific KPI Tiles -->
+                <div class="hcho-kpi-ribbon">
+                    <div class="hcho-kpi-card">
+                        <div class="hcho-kpi-icon icon-fire">🔥</div>
+                        <div class="hcho-kpi-meta">
+                            <span class="hcho-kpi-label">NASA Active Fires</span>
+                            <span class="hcho-kpi-val" id="hcho-kpi-fires">5,702</span>
+                            <span class="hcho-kpi-sub">VIIRS 375m & MODIS C6.1</span>
+                        </div>
+                    </div>
+
+                    <div class="hcho-kpi-card">
+                        <div class="hcho-kpi-icon icon-frp">⚡</div>
+                        <div class="hcho-kpi-meta">
+                            <span class="hcho-kpi-label">Integrated Fire Radiative Power</span>
+                            <span class="hcho-kpi-val text-amber" id="hcho-kpi-frp">18,653.9 MW</span>
+                            <span class="hcho-kpi-sub">Total Biomass Thermal Intensity</span>
+                        </div>
+                    </div>
+
+                    <div class="hcho-kpi-card">
+                        <div class="hcho-kpi-icon icon-hcho">🌌</div>
+                        <div class="hcho-kpi-meta">
+                            <span class="hcho-kpi-label">Peak S5P HCHO Column</span>
+                            <span class="hcho-kpi-val text-purple" id="hcho-kpi-peak">15.8 × 10¹⁵</span>
+                            <span class="hcho-kpi-sub">molec/cm² (TROPOMI Level-2)</span>
+                        </div>
+                    </div>
+
+                    <div class="hcho-kpi-card">
+                        <div class="hcho-kpi-icon icon-corr">📈</div>
+                        <div class="hcho-kpi-meta">
+                            <span class="hcho-kpi-label">Fire FRP vs HCHO Fit</span>
+                            <span class="hcho-kpi-val text-emerald" id="hcho-kpi-r">r = 0.735</span>
+                            <span class="hcho-kpi-sub">p &lt; 0.001 (Spearman ρ = 0.962)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pan-India Map & Hotspot Inspector Split Grid -->
+                <div class="india-hcho-grid">
+                    <!-- Map Card -->
+                    <div class="india-map-card">
+                        <div class="card-inner-header">
+                            <div>
+                                <h2 class="card-title-lg">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/></svg>
+                                    Geospatial Hotspot Map (Whole India Domain)
+                                </h2>
+                                <p class="card-desc">Click anywhere across India to sample instantaneous HCHO, active fire proximity, and ERA5 wind vectors.</p>
+                            </div>
+
+                            <!-- Map Region Quick-Zoom & Layer Controls -->
+                            <div class="hcho-map-controls">
+                                <button id="btn-zoom-india" class="glass-pill-btn active" title="Reset View to Whole India">Whole India</button>
+                                <button id="btn-zoom-igp" class="glass-pill-btn" title="Focus Indo-Gangetic Basin (Punjab & UP)">Punjab / IGP</button>
+                                <button id="btn-zoom-central" class="glass-pill-btn" title="Focus Central India Forest Corridor">Central Vidarbha</button>
+                                <button id="btn-zoom-ne" class="glass-pill-btn" title="Focus Northeast Shifting Cultivation">Northeast</button>
+                            </div>
+                        </div>
+
+                        <!-- Layer Toggle Strip -->
+                        <div class="layer-toggle-strip">
+                            <span class="layer-strip-title">Layer Toggles:</span>
+                            <button id="toggle-layer-fires" class="layer-pill-btn active"><span class="pill-dot dot-fire"></span> 🔥 Active Fires (VIIRS)</button>
+                            <button id="toggle-layer-hotspots" class="layer-pill-btn active"><span class="pill-dot dot-hotspot"></span> 🎯 Getis-Ord Gi* Hotspots</button>
+                            <button id="toggle-layer-wind" class="layer-pill-btn active"><span class="pill-dot dot-wind"></span> 💨 ERA5 Wind Vectors</button>
+                            <button id="toggle-layer-clusters" class="layer-pill-btn active"><span class="pill-dot dot-cluster"></span> 🏷️ DBSCAN Plume Clusters</button>
+                        </div>
+
+                        <!-- Map Canvas -->
+                        <div class="map-viewport-wrapper">
+                            <div id="india-hcho-map" class="map-canvas-pan-india"></div>
+
+                            <!-- Map Bottom Legend -->
+                            <div class="map-bottom-legend hcho-legend">
+                                <span class="legend-title">Hotspot Gi* Z-Score:</span>
+                                <span class="legend-item"><span class="color-bullet" style="background:#dc2626;"></span> 99% Conf (Z &gt; 2.58)</span>
+                                <span class="legend-item"><span class="color-bullet" style="background:#ea580c;"></span> 95% Conf (Z &gt; 1.96)</span>
+                                <span class="legend-item"><span class="color-bullet" style="background:#f59e0b;"></span> 90% Conf (Z &gt; 1.65)</span>
+                                <span class="legend-item"><span class="color-bullet" style="background:#ef4444;"></span> 🔥 Active Fire Point</span>
+                                <span class="legend-note">· Click map to inspect</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Inspector Sidebar -->
+                    <div class="hcho-inspector-sidebar">
+                        <!-- Click Inspector Card -->
+                        <div class="inspector-card">
+                            <div class="inspector-header">
+                                <span class="reading-badge-tag">INTERACTIVE SAMPLER</span>
+                                <h3 class="inspector-title" id="hcho-insp-title">Selected Location (India)</h3>
+                                <div class="reading-coords-line">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
+                                    <span id="hcho-insp-coords">22.4150° N, 77.7812° E</span>
+                                </div>
+                            </div>
+
+                            <div class="inspector-metrics-grid">
+                                <div class="insp-metric-box">
+                                    <span class="insp-m-lbl">S5P HCHO Column</span>
+                                    <span class="insp-m-val text-purple" id="hcho-insp-val">12.8 × 10¹⁵</span>
+                                    <span class="insp-m-sub">molec/cm²</span>
+                                </div>
+                                <div class="insp-metric-box">
+                                    <span class="insp-m-lbl">Getis-Ord Gi* Z</span>
+                                    <span class="insp-m-val text-amber" id="hcho-insp-z">Z = +3.42</span>
+                                    <span class="insp-m-sub">99% Hotspot Confidence</span>
+                                </div>
+                                <div class="insp-metric-box">
+                                    <span class="insp-m-lbl">Active Fires in Cell</span>
+                                    <span class="insp-m-val text-red" id="hcho-insp-fires">24 fires</span>
+                                    <span class="insp-m-sub" id="hcho-insp-frp">Total FRP: 78.4 MW</span>
+                                </div>
+                                <div class="insp-metric-box">
+                                    <span class="insp-m-lbl">ERA5 Wind Advection</span>
+                                    <span class="insp-m-val" id="hcho-insp-wind">3.5 m/s</span>
+                                    <span class="insp-m-sub" id="hcho-insp-wind-dir">315° (NW ➔ SE)</span>
+                                </div>
+                            </div>
+
+                            <div class="insp-eco-tag" id="hcho-insp-zone">
+                                <b>Region:</b> Central India Deciduous Forest (Vidarbha/MP/Chhattisgarh)
+                            </div>
+                        </div>
+
+                        <!-- Top DBSCAN Emission Clusters List -->
+                        <div class="clusters-list-card">
+                            <div class="clusters-head">
+                                <h4 class="clusters-head-title">Major Regional Biomass Clusters</h4>
+                                <span class="clusters-count-tag" id="clusters-count-tag">6 Clusters</span>
+                            </div>
+                            <div class="clusters-scroll-list" id="clusters-container">
+                                <!-- Populated dynamically from /api/hcho/summary -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scientific Correlation & Transport Analysis Dashboard Grid -->
+                <div class="correlation-cards-grid">
+                    <!-- Card 1: Bivariate Correlation & Regression Model -->
+                    <div class="corr-card">
+                        <div class="corr-card-head">
+                            <div class="corr-icon-box">📊</div>
+                            <div>
+                                <h3 class="corr-title">Bivariate Emission Correlation & Regression</h3>
+                                <span class="corr-subtitle">NASA VIIRS Fire Radiative Power (FRP) vs Sentinel-5P HCHO Column</span>
+                            </div>
+                        </div>
+                        <div class="corr-stats-row">
+                            <div class="corr-stat">
+                                <span class="c-lbl">Pearson Correlation</span>
+                                <span class="c-val text-emerald" id="corr-val-r">r = 0.735</span>
+                                <span class="c-sub">Statistically Significant (p &lt; 0.001)</span>
+                            </div>
+                            <div class="corr-stat">
+                                <span class="c-lbl">Spearman Rank Rho</span>
+                                <span class="c-val text-blue" id="corr-val-rho">ρ = 0.962</span>
+                                <span class="c-sub">Monotonic Non-Linear Fit</span>
+                            </div>
+                            <div class="corr-stat">
+                                <span class="c-lbl">OLS Regression R²</span>
+                                <span class="c-val text-purple" id="corr-val-r2">R² = 0.540</span>
+                                <span class="c-sub">54.0% Variance Explained</span>
+                            </div>
+                        </div>
+                        <p class="corr-desc">
+                            Formaldehyde (HCHO) is a direct intermediate product of volatile organic compound (VOC) photolysis emitted from high-temperature biomass combustion. The strong correlation (r = 0.735, ρ = 0.962) validates that satellite-observed formaldehyde spikes over India are directly driven by active fire radiative intensity.
+                        </p>
+                    </div>
+
+                    <!-- Card 2: ECMWF ERA5 Synoptic Wind Transport -->
+                    <div class="corr-card">
+                        <div class="corr-card-head">
+                            <div class="corr-icon-box">💨</div>
+                            <div>
+                                <h3 class="corr-title">ECMWF ERA5 Plume Transport Dynamics</h3>
+                                <span class="corr-subtitle">Advection along the Indo-Gangetic Basin to Bay of Bengal</span>
+                            </div>
+                        </div>
+                        <div class="corr-stats-row">
+                            <div class="corr-stat">
+                                <span class="c-lbl">Calm Layer Column (&lt;2.5 m/s)</span>
+                                <span class="c-val text-amber" id="transport-calm-val">2.20 × 10¹⁵</span>
+                                <span class="c-sub">Boundary Layer Stagnation</span>
+                            </div>
+                            <div class="corr-stat">
+                                <span class="c-lbl">Advection Flow (&gt;=4.0 m/s)</span>
+                                <span class="c-val text-blue" id="transport-wind-val">2.28 × 10¹⁵</span>
+                                <span class="c-sub">Downwind Dilution Corridor</span>
+                            </div>
+                            <div class="corr-stat">
+                                <span class="c-lbl">Dominant Transport Axis</span>
+                                <span class="c-val text-emerald">NW ➔ SE</span>
+                                <span class="c-sub">Punjab ➔ UP ➔ Bay of Bengal</span>
+                            </div>
+                        </div>
+                        <p class="corr-desc">
+                            Post-monsoon synoptic winds predominantly blow from northwest to southeast along the Indo-Gangetic trough. In calm, nocturnal inversion conditions, plumes accumulate near source farmlands and forest fringes, whereas persistent daytime northwesterly winds transport elevated HCHO concentrations downwind across Eastern India.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Regional Agro-Ecological Breakdown Table -->
+                <div class="regional-table-card">
+                    <div class="guide-header-row">
+                        <div>
+                            <h3 class="guide-main-title">Regional Agro-Ecological Burning Breakdown</h3>
+                            <p class="guide-main-sub">Comparative analysis of active fires, HCHO enhancements, and wind speeds across Indian ecological regions.</p>
+                        </div>
+                        <span class="guide-verified-badge">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                            <span>Stratified Spatial Statistics</span>
+                        </span>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="regional-hcho-table">
+                            <thead>
+                                <tr>
+                                    <th>Agro-Ecological Region</th>
+                                    <th>Active Fires</th>
+                                    <th>Total FRP (MW)</th>
+                                    <th>Mean HCHO (×10¹⁵ molec/cm²)</th>
+                                    <th>Peak HCHO (×10¹⁵)</th>
+                                    <th>Pearson r</th>
+                                    <th>Mean Wind (ERA5)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="regional-table-body">
+                                <tr>
+                                    <td><b>Central India Deciduous Forest (Vidarbha/MP)</b></td>
+                                    <td>733</td>
+                                    <td>2,410.2 MW</td>
+                                    <td>2.63</td>
+                                    <td>12.4</td>
+                                    <td><span class="badge-r good">r = 0.887</span></td>
+                                    <td>3.26 m/s (NW)</td>
+                                </tr>
+                                <tr>
+                                    <td><b>Punjab-Haryana Agricultural Basin (Stubble)</b></td>
+                                    <td>689</td>
+                                    <td>2,198.5 MW</td>
+                                    <td>3.62</td>
+                                    <td>15.8</td>
+                                    <td><span class="badge-r good">r = 0.838</span></td>
+                                    <td>3.55 m/s (NW)</td>
+                                </tr>
+                                <tr>
+                                    <td><b>Central &amp; Eastern Indo-Gangetic Corridor</b></td>
+                                    <td>286</td>
+                                    <td>942.1 MW</td>
+                                    <td>2.37</td>
+                                    <td>8.9</td>
+                                    <td><span class="badge-r good">r = 0.982</span></td>
+                                    <td>3.22 m/s (WNW)</td>
+                                </tr>
+                                <tr>
+                                    <td><b>Northeast Highlands (Shifting Jhum Cultivation)</b></td>
+                                    <td>102</td>
+                                    <td>314.8 MW</td>
+                                    <td>3.85</td>
+                                    <td>11.2</td>
+                                    <td><span class="badge-r good">r = 0.764</span></td>
+                                    <td>2.45 m/s (NE)</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </section>

@@ -1455,3 +1455,485 @@ body.light-theme {
     .reading-actions { grid-template-columns: 1fr; }
     .footer-container { flex-direction: column; text-align: center; }
 }
+
+/* ==========================================================================
+   PAGE 3: Pan-India HCHO Hotspots & Biomass Surveillance Styles
+   ========================================================================== */
+.hcho-kpi-ribbon {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+}
+
+.hcho-kpi-card {
+    background: #ffffff;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: var(--transition);
+}
+
+.hcho-kpi-card:hover {
+    box-shadow: var(--shadow-card-hover);
+    transform: translateY(-2px);
+}
+
+.hcho-kpi-icon {
+    font-size: 1.8rem;
+    width: 48px;
+    height: 48px;
+    background: #f8fafc;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.hcho-kpi-meta {
+    display: flex;
+    flex-direction: column;
+}
+
+.hcho-kpi-label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.hcho-kpi-val {
+    font-family: var(--font-heading);
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: var(--text-heading);
+    line-height: 1.2;
+    margin-top: 2px;
+}
+
+.hcho-kpi-sub {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+
+.text-purple { color: #7c3aed !important; }
+.text-red { color: #dc2626 !important; }
+
+/* India HCHO Grid Split */
+.india-hcho-grid {
+    display: grid;
+    grid-template-columns: 1.55fr 1fr;
+    gap: 24px;
+    align-items: start;
+}
+
+.india-map-card {
+    background: #ffffff;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.hcho-map-controls {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.glass-pill-btn {
+    background: #f8fafc;
+    color: var(--text-body);
+    border: 1px solid var(--border-light);
+    padding: 5px 12px;
+    border-radius: var(--radius-pill);
+    font-size: 0.74rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.glass-pill-btn:hover {
+    background: #f1f5f9;
+    color: var(--text-heading);
+}
+
+.glass-pill-btn.active {
+    background: #047857;
+    color: #ffffff;
+    border-color: #047857;
+}
+
+.layer-toggle-strip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding-bottom: 2px;
+}
+
+.layer-strip-title {
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+
+.layer-pill-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #ffffff;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-pill);
+    padding: 5px 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-body);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.layer-pill-btn:hover {
+    background: #f8fafc;
+}
+
+.layer-pill-btn.active {
+    background: #ecfdf5;
+    border-color: #a7f3d0;
+    color: #065f46;
+}
+
+.pill-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+.dot-fire { background: #ef4444; }
+.dot-hotspot { background: #ea580c; }
+.dot-wind { background: #0284c7; }
+.dot-cluster { background: #7c3aed; }
+
+.map-canvas-pan-india {
+    height: 520px;
+    width: 100%;
+    background: #e2e8f0;
+}
+
+.hcho-legend {
+    font-size: 0.72rem;
+}
+
+/* Inspector Sidebar */
+.hcho-inspector-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.inspector-card {
+    background: #ffffff;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.inspector-header {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.inspector-title {
+    font-family: var(--font-heading);
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--text-heading);
+}
+
+.inspector-metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.insp-metric-box {
+    background: #f8fafc;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+}
+
+.insp-m-lbl {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.insp-m-val {
+    font-family: var(--font-heading);
+    font-size: 1.15rem;
+    font-weight: 800;
+    margin-top: 2px;
+}
+
+.insp-m-sub {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+}
+
+.insp-eco-tag {
+    background: #f0fdf4;
+    border: 1px solid #dcfce7;
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+    font-size: 0.78rem;
+    color: #166534;
+}
+
+/* Clusters List */
+.clusters-list-card {
+    background: #ffffff;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.clusters-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.clusters-head-title {
+    font-family: var(--font-heading);
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--text-heading);
+}
+
+.clusters-count-tag {
+    font-size: 0.7rem;
+    font-weight: 700;
+    background: #f1f5f9;
+    color: var(--text-muted);
+    padding: 3px 8px;
+    border-radius: var(--radius-pill);
+}
+
+.clusters-scroll-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 240px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.cluster-item-card {
+    background: #f8fafc;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.cluster-item-card:hover {
+    border-color: #059669;
+    background: #f0fdf4;
+    transform: translateX(2px);
+}
+
+.cluster-item-name {
+    font-family: var(--font-heading);
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-heading);
+}
+
+.cluster-item-sub {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.cluster-item-badge {
+    text-align: right;
+}
+
+.cluster-item-hcho {
+    font-family: var(--font-heading);
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: #7c3aed;
+}
+
+/* Scientific Correlation Dashboard Cards */
+.correlation-cards-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.corr-card {
+    background: #ffffff;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.corr-card-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.corr-icon-box {
+    width: 40px;
+    height: 40px;
+    background: #f1f5f9;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+
+.corr-title {
+    font-family: var(--font-heading);
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--text-heading);
+}
+
+.corr-subtitle {
+    font-size: 0.76rem;
+    color: var(--text-muted);
+}
+
+.corr-stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    background: #f8fafc;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 14px;
+}
+
+.corr-stat {
+    display: flex;
+    flex-direction: column;
+}
+
+.c-lbl {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.c-val {
+    font-family: var(--font-heading);
+    font-size: 1.25rem;
+    font-weight: 800;
+    margin-top: 2px;
+}
+
+.c-sub {
+    font-size: 0.66rem;
+    color: var(--text-muted);
+}
+
+.corr-desc {
+    font-size: 0.82rem;
+    color: var(--text-body);
+    line-height: 1.5;
+}
+
+/* Regional Table */
+.regional-table-card {
+    background: #ffffff;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.regional-hcho-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.84rem;
+}
+
+.regional-hcho-table th {
+    text-align: left;
+    padding: 10px 14px;
+    background: #f8fafc;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.regional-hcho-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border-light);
+    color: var(--text-body);
+}
+
+.regional-hcho-table tr:hover td {
+    background: #f8fafc;
+}
+
+.badge-r.good {
+    display: inline-block;
+    padding: 2px 8px;
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+    border-radius: var(--radius-pill);
+    font-weight: 700;
+    font-size: 0.74rem;
+}
+
+@media (max-width: 1024px) {
+    .hcho-kpi-ribbon { grid-template-columns: repeat(2, 1fr); }
+    .india-hcho-grid { grid-template-columns: 1fr; }
+    .correlation-cards-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+    .hcho-kpi-ribbon { grid-template-columns: 1fr; }
+}

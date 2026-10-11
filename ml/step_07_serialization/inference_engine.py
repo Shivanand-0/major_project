@@ -10,8 +10,18 @@ from typing import Dict, Any, List, Union, Optional
 
 try:
     from .config import CPCB_CATEGORIES
-except ImportError:
-    from config import CPCB_CATEGORIES
+except (ImportError, ValueError):
+    try:
+        from step_07_serialization.config import CPCB_CATEGORIES
+    except ImportError:
+        CPCB_CATEGORIES = [
+            {"min": 0,   "max": 50,  "category": "Good",         "color": "#00b050", "advisory": "Minimal impact on health."},
+            {"min": 51,  "max": 100, "category": "Satisfactory", "color": "#92d050", "advisory": "Minor breathing discomfort to sensitive people."},
+            {"min": 101, "max": 200, "category": "Moderate",     "color": "#ffff00", "advisory": "Breathing discomfort to people with lungs, asthma, and heart diseases."},
+            {"min": 201, "max": 300, "category": "Poor",         "color": "#ff9900", "advisory": "Breathing discomfort to most people on prolonged exposure."},
+            {"min": 301, "max": 400, "category": "Very Poor",    "color": "#ff0000", "advisory": "Respiratory illness on prolonged exposure."},
+            {"min": 401, "max": 500, "category": "Severe",       "color": "#c00000", "advisory": "Affects healthy people and seriously impacts those with existing diseases."}
+        ]
 
 
 class VirtualSensorPipeline:

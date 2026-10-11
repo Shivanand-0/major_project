@@ -1,0 +1,38 @@
+{
+  "NAGPUR_CENTRAL": {
+    "latitude": 21.1458,
+    "longitude": 79.0882,
+    "total_road_segments": 647,
+    "major_highways_count": 64,
+    "secondary_roads_count": 117,
+    "residential_roads_count": 382,
+    "road_density_per_sqkm": 143.02
+  },
+  "CHANDRAPUR_MIDC": {
+    "latitude": 19.9615,
+    "longitude": 79.2961,
+    "total_road_segments": 510,
+    "major_highways_count": 34,
+    "secondary_roads_count": 15,
+    "residential_roads_count": 450,
+    "road_density_per_sqkm": 112.73
+  },
+  "AMRAVATI_CENTRAL": {
+    "latitude": 20.9374,
+    "longitude": 77.7796,
+    "total_road_segments": 476,
+    "major_highways_count": 27,
+    "secondary_roads_count": 22,
+    "residential_roads_count": 420,
+    "road_density_per_sqkm": 105.22
+  },
+  "AKOLA_WEST": {
+    "latitude": 20.7002,
+    "longitude": 77.0082,
+    "total_road_segments": 623,
+    "major_highways_count": 18,
+    "secondary_roads_count": 18,
+    "residential_roads_count": 583,
+    "road_density_per_sqkm": 137.71
+  }
+}

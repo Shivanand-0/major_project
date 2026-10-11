@@ -29,6 +29,13 @@ TEST_MATRIX_FILE    = SPLIT_DIR / "test_matrix.csv"
 PIPELINE_MODEL_FILE = MODELS_DIR / "pipeline_model.joblib"
 PIPELINE_METADATA_FILE = MODELS_DIR / "pipeline_metadata.json"
 
+# Backend Direct Deployment Target Paths
+BACKEND_DIR = BASE_DIR.parent / "backend"
+BACKEND_MODELS_DIR = BACKEND_DIR / "models"
+BACKEND_PIPELINE_MODEL_FILE = BACKEND_MODELS_DIR / "pipeline_model.joblib"
+BACKEND_CHAMPION_MODEL_FILE = BACKEND_MODELS_DIR / "champion_model.joblib"
+BACKEND_METADATA_FILE = BACKEND_MODELS_DIR / "pipeline_metadata.json"
+
 # CPCB NAQI Categories & Color Mapping
 CPCB_CATEGORIES = [
     {"min": 0,   "max": 50,  "category": "Good",         "color": "#00b050", "advisory": "Minimal impact on health."},

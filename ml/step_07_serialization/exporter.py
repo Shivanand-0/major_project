@@ -23,6 +23,10 @@ try:
         TEST_MATRIX_FILE,
         PIPELINE_MODEL_FILE,
         PIPELINE_METADATA_FILE,
+        BACKEND_MODELS_DIR,
+        BACKEND_PIPELINE_MODEL_FILE,
+        BACKEND_CHAMPION_MODEL_FILE,
+        BACKEND_METADATA_FILE,
         MODELS_DIR,
         SPLIT_DIR
     )
@@ -38,6 +42,10 @@ except ImportError:
         TEST_MATRIX_FILE,
         PIPELINE_MODEL_FILE,
         PIPELINE_METADATA_FILE,
+        BACKEND_MODELS_DIR,
+        BACKEND_PIPELINE_MODEL_FILE,
+        BACKEND_CHAMPION_MODEL_FILE,
+        BACKEND_METADATA_FILE,
         MODELS_DIR,
         SPLIT_DIR
     )
@@ -113,12 +121,25 @@ class PipelineExporter:
         joblib.dump(pipeline, self.output_file)
 
         # Save metadata JSON
+        meta_dict = {
+            "pipeline_artifact": str(self.output_file),
+            "feature_names": feature_names,
+            "metadata": pipeline_metadata
+        }
         with open(PIPELINE_METADATA_FILE, "w") as f:
-            json.dump({
-                "pipeline_artifact": str(self.output_file),
-                "feature_names": feature_names,
-                "metadata": pipeline_metadata
-            }, f, indent=2)
+            json.dump(meta_dict, f, indent=2)
+
+        # Also sync directly to backend/models/ for cloud & container deployments
+        try:
+            BACKEND_MODELS_DIR.mkdir(parents=True, exist_ok=True)
+            print(f"[Exporting] Syncing model artifacts to backend: {BACKEND_PIPELINE_MODEL_FILE}")
+            joblib.dump(pipeline, BACKEND_PIPELINE_MODEL_FILE)
+            joblib.dump(model, BACKEND_CHAMPION_MODEL_FILE)
+            with open(BACKEND_METADATA_FILE, "w") as f:
+                json.dump(meta_dict, f, indent=2)
+            print("  [OK] Successfully synchronized models to backend/models/ directory.")
+        except Exception as err:
+            print(f"  [Warning] Could not sync directly to backend: {err}")
 
         file_size_mb = self.output_file.stat().st_size / (1024 * 1024)
         print(f"[SUCCESS] Serialized bundle created ({file_size_mb:.2f} MB)")

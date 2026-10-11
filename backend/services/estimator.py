@@ -24,8 +24,16 @@ from backend_config import (
 )
 
 # Import CPCB physical station feed client and NAQI calculator
-from step_01_raw_ingestion.cpcb_ground_truth import CPCBStationFeed
-from step_01_raw_ingestion.naqi import compute_composite_naqi
+try:
+    from services.cpcb_ground_truth import CPCBStationFeed
+    from services.naqi import compute_composite_naqi
+except ImportError:
+    try:
+        from cpcb_ground_truth import CPCBStationFeed
+        from naqi import compute_composite_naqi
+    except ImportError:
+        from step_01_raw_ingestion.cpcb_ground_truth import CPCBStationFeed
+        from step_01_raw_ingestion.naqi import compute_composite_naqi
 
 IST = timezone(timedelta(hours=5, minutes=30))
 

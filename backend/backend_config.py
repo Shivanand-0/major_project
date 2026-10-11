@@ -10,18 +10,45 @@ from pathlib import Path
 BACKEND_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = BACKEND_DIR.parent
 ML_DIR = PROJECT_ROOT / "ml"
-MODELS_DIR = ML_DIR / "data" / "models"
-RAW_DIR = ML_DIR / "data" / "raw"
-VALIDATION_DIR = ML_DIR / "data" / "validation"
 
-PIPELINE_MODEL_PATH = MODELS_DIR / "pipeline_model.joblib"
-OSM_NETWORK_PATH = RAW_DIR / "osm_roads" / "osm_road_network.json"
-if not OSM_NETWORK_PATH.exists():
-    OSM_NETWORK_PATH = RAW_DIR / "real_osm_road_network.json"
-VALIDATION_REPORT_PATH = VALIDATION_DIR / "realtime_validation_report.json"
+# 1. Local Backend Models Directory (priority for Render / standalone cloud deployment)
+BACKEND_MODELS_DIR = BACKEND_DIR / "models"
+BACKEND_SERVICES_DIR = BACKEND_DIR / "services"
 
-# Add ML directory and serialization directory to sys.path so unpickling works
-for p in [str(ML_DIR), str(ML_DIR / "step_07_serialization")]:
+# 2. ML Pipeline Fallback Directory (for local development)
+ML_MODELS_DIR = ML_DIR / "data" / "models"
+ML_RAW_DIR = ML_DIR / "data" / "raw"
+ML_VALIDATION_DIR = ML_DIR / "data" / "validation"
+
+# Resolve Pipeline Model Path (prioritize backend/models)
+if (BACKEND_MODELS_DIR / "pipeline_model.joblib").exists():
+    PIPELINE_MODEL_PATH = BACKEND_MODELS_DIR / "pipeline_model.joblib"
+elif (BACKEND_MODELS_DIR / "champion_model.joblib").exists():
+    PIPELINE_MODEL_PATH = BACKEND_MODELS_DIR / "champion_model.joblib"
+else:
+    PIPELINE_MODEL_PATH = ML_MODELS_DIR / "pipeline_model.joblib"
+
+# Resolve OSM Road Network Path (prioritize backend/models)
+if (BACKEND_MODELS_DIR / "osm_road_network.json").exists():
+    OSM_NETWORK_PATH = BACKEND_MODELS_DIR / "osm_road_network.json"
+elif (BACKEND_MODELS_DIR / "real_osm_road_network.json").exists():
+    OSM_NETWORK_PATH = BACKEND_MODELS_DIR / "real_osm_road_network.json"
+elif (ML_RAW_DIR / "osm_roads" / "osm_road_network.json").exists():
+    OSM_NETWORK_PATH = ML_RAW_DIR / "osm_roads" / "osm_road_network.json"
+else:
+    OSM_NETWORK_PATH = ML_RAW_DIR / "real_osm_road_network.json"
+
+VALIDATION_REPORT_PATH = ML_VALIDATION_DIR / "realtime_validation_report.json"
+
+# Ensure all relevant backend and ML paths are in sys.path so unpickling works
+for p in [
+    str(BACKEND_DIR),
+    str(BACKEND_SERVICES_DIR),
+    str(BACKEND_MODELS_DIR),
+    str(ML_DIR),
+    str(ML_DIR / "step_07_serialization"),
+    str(ML_DIR / "step_01_raw_ingestion")
+]:
     if p not in sys.path:
         sys.path.insert(0, p)
 

@@ -23,8 +23,9 @@ from backend_config import (
     ML_DIR
 )
 
-# Import CPCB physical station feed client
+# Import CPCB physical station feed client and NAQI calculator
 from step_01_raw_ingestion.cpcb_ground_truth import CPCBStationFeed
+from step_01_raw_ingestion.naqi import compute_composite_naqi
 
 IST = timezone(timedelta(hours=5, minutes=30))
 
@@ -85,12 +86,19 @@ class VirtualSensorEstimator:
             "timezone": "Asia/Kolkata"
         }
 
-        w_resp = requests.get(self.WEATHER_API_URL, params=weather_params, timeout=12)
-        if w_resp.status_code != 200:
-            raise RuntimeError(f"Open-Meteo Weather API failed (HTTP {w_resp.status_code}) for ({lat}, {lon}): {w_resp.text}")
-        
-        w_json = w_resp.json()
-        if "current" not in w_json:
+        w_json = None
+        for attempt in range(3):
+            try:
+                w_resp = requests.get(self.WEATHER_API_URL, params=weather_params, timeout=20)
+                if w_resp.status_code == 200:
+                    w_json = w_resp.json()
+                    break
+            except (requests.RequestException, Exception):
+                if attempt == 2:
+                    raise
+                time.sleep(1.0)
+
+        if not w_json or "current" not in w_json:
             raise RuntimeError(f"No current weather data returned for ({lat}, {lon})")
         live_weather = w_json["current"]
 
@@ -102,12 +110,19 @@ class VirtualSensorEstimator:
             "timezone": "Asia/Kolkata"
         }
 
-        aq_resp = requests.get(self.AQ_API_URL, params=aq_params, timeout=12)
-        if aq_resp.status_code != 200:
-            raise RuntimeError(f"Open-Meteo Air Quality API failed (HTTP {aq_resp.status_code}) for ({lat}, {lon}): {aq_resp.text}")
-        
-        aq_json = aq_resp.json()
-        if "current" not in aq_json:
+        aq_json = None
+        for attempt in range(3):
+            try:
+                aq_resp = requests.get(self.AQ_API_URL, params=aq_params, timeout=20)
+                if aq_resp.status_code == 200:
+                    aq_json = aq_resp.json()
+                    break
+            except (requests.RequestException, Exception):
+                if attempt == 2:
+                    raise
+                time.sleep(1.0)
+
+        if not aq_json or "current" not in aq_json:
             raise RuntimeError(f"No current atmospheric tracer data returned for ({lat}, {lon})")
         live_aq = aq_json["current"]
 
@@ -219,6 +234,7 @@ class VirtualSensorEstimator:
             "sulphur_dioxide": float(aq["sulphur_dioxide"]),
             "ozone": float(aq["ozone"]),
             "carbon_monoxide": co,
+            "cams_satellite_naqi": float(compute_composite_naqi(pd.DataFrame([aq])).iloc[0]),
             "combustion_tracer_ratio": combustion_ratio,
             "osm_total_roads": total_roads,
             "osm_major_highways": major,
@@ -287,11 +303,39 @@ class VirtualSensorEstimator:
         pred = self.pipeline.predict_single(features)
         latency_ms = round((time.time() - t_start) * 1000, 1)
 
-        # 4. Reference station distance summary
+        # 4. Reference station distance summary & Station Placement Check
         ref_distances = {}
+        station_ground_truth = None
         for target_id, target_meta in VIDARBHA_NODES.items():
             dist = haversine_distance(lat, lon, target_meta["latitude"], target_meta["longitude"])
             ref_distances[target_meta["city"]] = f"{dist:.1f} km"
+            if dist < 0.5 and target_meta.get("type") == "physical":
+                try:
+                    g_df = self.cpcb_client.get_ground_truth_snapshot()
+                    g_row = g_df[g_df["station_id"] == target_id]
+                    if not g_row.empty:
+                        g_data = g_row.iloc[0]
+                        g_naqi = g_data.get("ground_india_naqi")
+                        station_ground_truth = {
+                            "has_physical_station": True,
+                            "station_id": target_id,
+                            "station_name": target_meta["name"],
+                            "observed_india_naqi": g_naqi,
+                            "cpcb_category": g_data.get("category"),
+                            "observed_time": g_data.get("observed_time"),
+                            "dominant_pollutant": g_data.get("dominant_pollutant"),
+                            "pollutants": {
+                                "pm25": g_data.get("pm25"),
+                                "pm10": g_data.get("pm10"),
+                                "no2": g_data.get("no2"),
+                                "so2": g_data.get("so2"),
+                                "co": g_data.get("co"),
+                                "o3": g_data.get("o3")
+                            },
+                            "residual": round(pred["predicted_india_naqi"] - float(g_naqi), 1) if g_naqi else None
+                        }
+                except Exception:
+                    pass
 
         return {
             "coordinates": {"latitude": lat, "longitude": lon},
@@ -299,6 +343,7 @@ class VirtualSensorEstimator:
             "observation_time": f"{obs_time} IST",
             "latency_ms": latency_ms,
             "prediction": pred,
+            "physical_station_ground_truth": station_ground_truth,
             "realtime_features": {
                 "atmospheric_tracers": {
                     "pm25": features["pm2_5"],
@@ -307,7 +352,8 @@ class VirtualSensorEstimator:
                     "so2": features["sulphur_dioxide"],
                     "co": features["carbon_monoxide"],
                     "o3": features["ozone"],
-                    "combustion_ratio": features["combustion_tracer_ratio"]
+                    "combustion_ratio": features["combustion_tracer_ratio"],
+                    "cams_satellite_naqi": features.get("cams_satellite_naqi")
                 },
                 "meteorology": {
                     "temperature_c": features["temperature_2m"],
@@ -345,7 +391,9 @@ class VirtualSensorEstimator:
                 cpcb_snapshot[st_id] = {
                     "station_name": row["station_name"],
                     "source": row.get("source", "CPCB Portal"),
-                    "cpcb_naqi": row["ground_cpcb_naqi"],
+                    "ground_india_naqi": row["ground_india_naqi"],
+                    "dominant_pollutant": row.get("dominant_pollutant"),
+                    "sub_indices": row.get("sub_indices", {}),
                     "cpcb_pm25_subindex": row.get("cpcb_pm25_subindex"),
                     "observed_time": row["observed_time"],
                     "category": row.get("category", "N/A"),
@@ -384,32 +432,35 @@ class VirtualSensorEstimator:
                 "observation_time": res["observation_time"]
             }
 
-            # If physical station exists, attach ground truth & residuals
-            if st_id in cpcb_snapshot:
+            # If physical station is placed at this node and has live data, attach ground truth & residual
+            if meta.get("type") == "physical" and st_id in cpcb_snapshot:
                 g = cpcb_snapshot[st_id]
-                g_naqi = g.get("cpcb_naqi")
+                g_naqi = g.get("ground_india_naqi")
                 diff = round(pred_naqi - float(g_naqi), 1) if g_naqi is not None else None
                 pm25_sub = g.get("cpcb_pm25_subindex")
-                pm25_diff = round(pred_naqi - float(pm25_sub), 1) if pm25_sub is not None else None
 
                 node_dict["physical_ground_truth"] = {
-                    "observed_cpcb_naqi": g_naqi,
+                    "has_physical_station": True,
+                    "observed_india_naqi": g_naqi,
+                    "cpcb_category": g.get("category"),
+                    "dominant_pollutant": g.get("dominant_pollutant"),
+                    "sub_indices": g.get("sub_indices"),
                     "observed_pm25_subindex": pm25_sub,
                     "observed_time": g.get("observed_time"),
                     "source": g.get("source"),
                     "pollutants": g.get("pollutants"),
-                    "residual_vs_portal_aqi": diff,
-                    "residual_vs_pm25_subindex": pm25_diff
+                    "residual": diff
                 }
             else:
+                # Unmonitored coordinate: strictly None, do NOT show station value
                 node_dict["physical_ground_truth"] = None
 
             nodes_output.append(node_dict)
 
         result = {
             "timestamp_ist": datetime.now(IST).strftime("%Y-%m-%d %H:%M:%S IST"),
-            "model_champion": self.pipeline.metadata.get("model_type"),
-            "model_mae": self.pipeline.metadata.get("error_margin_mae", 6.01),
+            "model_champion": self.pipeline.metadata.get("model_architecture", "LightGBM Champion"),
+            "model_mae": self.pipeline.metadata.get("test_mae", 22.61),
             "nodes": nodes_output
         }
 

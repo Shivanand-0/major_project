@@ -947,3 +947,79 @@ body.dark-theme {
     .nodes-grid { grid-template-columns: 1fr; }
     .map-container { height: 360px; }
 }
+
+/* ==========================================================================
+   Leaflet Dark Theme Customization
+   ========================================================================== */
+.leaflet-container {
+    background: #0d111a !important;
+    font-family: var(--font-body) !important;
+}
+
+.leaflet-bar {
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+    border-radius: var(--radius-sm) !important;
+    overflow: hidden;
+}
+
+.leaflet-bar a {
+    background-color: rgba(18, 24, 38, 0.9) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    color: #f1f5f9 !important;
+    transition: var(--transition);
+}
+
+.leaflet-bar a:hover {
+    background-color: rgba(56, 189, 248, 0.25) !important;
+    color: #38bdf8 !important;
+}
+
+.leaflet-control-layers {
+    background: rgba(15, 23, 42, 0.92) !important;
+    backdrop-filter: blur(14px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    border-radius: var(--radius-md) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+    color: #f1f5f9 !important;
+    font-size: 0.75rem !important;
+    font-weight: 500;
+}
+
+.leaflet-control-layers-expanded {
+    padding: 10px 14px !important;
+}
+
+.leaflet-control-layers label {
+    margin: 4px 0 !important;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.leaflet-popup-content-wrapper {
+    background: rgba(15, 23, 42, 0.95) !important;
+    backdrop-filter: blur(16px) !important;
+    color: #f8fafc !important;
+    border: 1px solid rgba(56, 189, 248, 0.35) !important;
+    border-radius: var(--radius-md) !important;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6) !important;
+}
+
+.leaflet-popup-tip {
+    background: rgba(15, 23, 42, 0.95) !important;
+    border: 1px solid rgba(56, 189, 248, 0.35) !important;
+}
+
+.leaflet-control-attribution {
+    background: rgba(10, 13, 20, 0.75) !important;
+    backdrop-filter: blur(6px);
+    color: #64748b !important;
+    font-size: 10px !important;
+}
+
+.leaflet-control-attribution a {
+    color: #38bdf8 !important;
+}
+

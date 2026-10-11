@@ -8,6 +8,12 @@ let clickMarker = null;
 let gridLayerGroup = null;
 let currentNodesData = null;
 
+// Leaflet Basemap Layers (Zero API Key required, high reliability)
+let esriDarkLayer = null;
+let osmStandardLayer = null;
+let esriSatelliteLayer = null;
+let baseLayers = {};
+
 // CPCB Color and Breakpoint Utility
 function getCPCBColor(aqi) {
     if (aqi <= 50) return '#00b050';      // Good
@@ -46,17 +52,54 @@ function initMap() {
     map = L.map('vidarbha-map', {
         center: vidarbhaCenter,
         zoom: 7,
-        zoomControl: true
+        zoomControl: true,
+        fadeAnimation: true
     });
 
-    // Dark CartoDB basemap tiles
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-        subdomains: 'abcd',
+    // Layer 1: Esri Sleek Dark Canvas (No API key, pristine dark aesthetic)
+    esriDarkLayer = L.layerGroup([
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri, DeLorme, NAVTEQ',
+            maxZoom: 16
+        }),
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
+            attribution: '&copy; Esri',
+            maxZoom: 16
+        })
+    ]);
+
+    // Layer 2: OpenStreetMap Standard (Full roads, district boundaries, towns)
+    osmStandardLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
+        maxZoom: 19
+    });
+
+    // Layer 3: Esri High-Resolution Satellite World Imagery
+    esriSatelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri, Maxar, Earthstar Geographics',
         maxZoom: 18
-    }).addTo(map);
+    });
+
+    // Default base layer: Dark Canvas
+    esriDarkLayer.addTo(map);
 
     gridLayerGroup = L.layerGroup().addTo(map);
+
+    baseLayers = {
+        "🌑 Dark Canvas": esriDarkLayer,
+        "🗺️ OpenStreetMap": osmStandardLayer,
+        "🛰️ Satellite Imagery": esriSatelliteLayer
+    };
+
+    // Native Leaflet Layer Switcher Control
+    L.control.layers(baseLayers, {
+        "AI Spatial Mesh": gridLayerGroup
+    }, { position: 'topright' }).addTo(map);
+
+    // Invalidate size on load to ensure tiles render immediately
+    setTimeout(() => {
+        if (map) map.invalidateSize();
+    }, 250);
 
     // Map Click Listener -> Trigger Virtual Inspector
     map.on('click', (e) => {
@@ -124,11 +167,18 @@ function renderNodeMarkers(nodes) {
                 <div style="font-size:11px; color:#cbd5e1;">Category: <b>${node.virtual_prediction.category}</b></div>
         `;
 
-        if (node.physical_ground_truth) {
+        if (node.type === 'physical' && node.physical_ground_truth && node.physical_ground_truth.observed_india_naqi !== null && node.physical_ground_truth.observed_india_naqi !== undefined) {
             const g = node.physical_ground_truth;
             popupHtml += `
                 <div style="margin-top:6px; padding-top:6px; border-top:1px solid #334155; font-size:11px; color:#38bdf8;">
-                    CPCB Ground: <b>${g.observed_cpcb_naqi}</b> (Residual: ${g.residual_vs_portal_aqi > 0 ? '+' : ''}${g.residual_vs_portal_aqi})
+                    Physical CPCB India NAQI: <b>${g.observed_india_naqi}</b> (${g.cpcb_category || 'CPCB'})<br>
+                    Dominant: <b>${g.dominant_pollutant || 'PM2.5'}</b> | Residual: <b>${g.residual > 0 ? '+' : ''}${g.residual} pts</b>
+                </div>
+            `;
+        } else {
+            popupHtml += `
+                <div style="margin-top:6px; padding-top:6px; border-top:1px solid #334155; font-size:11px; color:#10b981;">
+                    Location Status: <b>Unmonitored (No Physical Station Placed Here)</b>
                 </div>
             `;
         }
@@ -237,20 +287,20 @@ function renderNodesGrid(nodes) {
         const meteo = rfeats.meteorology || {};
 
         let compHtml = '';
-        if (isPhysical && ground) {
-            const resVal = ground.residual_vs_portal_aqi;
+        if (isPhysical && ground && ground.observed_india_naqi !== null && ground.observed_india_naqi !== undefined) {
+            const resVal = ground.residual;
             const resSign = resVal > 0 ? '+' : '';
             const resClass = Math.abs(resVal) <= 15 ? 'good-fit' : 'high-fit';
 
             compHtml = `
                 <div class="comparison-row">
                     <div class="comp-title">
-                        <span>🏛️ CPCB Ground Truth (${ground.observed_time || 'Live'})</span>
+                        <span>🏛️ Physical CPCB Station (${ground.observed_time || 'Live'})</span>
                         <span class="comp-residual ${resClass}">Residual: ${resSign}${resVal} pts</span>
                     </div>
                     <div class="comp-vals">
-                        <span>CPCB Portal AQI: <b>${ground.observed_cpcb_naqi || 'N/A'}</b></span>
-                        <span>PM2.5 Sub-Index: <b>${ground.observed_pm25_subindex || 'N/A'}</b></span>
+                        <span>Physical India NAQI: <b>${ground.observed_india_naqi}</b> (${ground.cpcb_category || 'CPCB'})</span>
+                        <span>Dominant Pollutant: <b>${ground.dominant_pollutant || 'PM2.5'}</b></span>
                     </div>
                 </div>
             `;
@@ -259,10 +309,10 @@ function renderNodesGrid(nodes) {
                 <div class="comparison-row" style="background:rgba(16, 185, 129, 0.04); border-color:rgba(16, 185, 129, 0.25);">
                     <div class="comp-title" style="color:#10b981;">
                         <span>✨ Autonomous AI Virtual Sensor</span>
-                        <span style="color:#10b981;">100% Synthetic-Free</span>
+                        <span style="color:#10b981;">Unmonitored Coordinate</span>
                     </div>
-                    <div class="comp-vals" style="font-size:11px;">
-                        <span>Unmonitored Ground Truth Resolved via CAMS + ERA5 Physics</span>
+                    <div class="comp-vals" style="font-size:11px; color:#94a3b8;">
+                        <span>No Physical CAAQMS Station Placed Here · Estimated via ML Spatial Grid</span>
                     </div>
                 </div>
             `;
@@ -351,6 +401,37 @@ async function executePointPrediction(lat, lon, overrides = {}) {
 
         document.getElementById('res-ci').textContent = `[${pred.confidence_interval.lower.toFixed(1)} – ${pred.confidence_interval.upper.toFixed(1)}]`;
         document.getElementById('res-dominant').textContent = pred.dominant_pollutant || 'PM2.5';
+        
+        // Physical Station Status (only display if physical station placed at coordinate)
+        const stationBox = document.getElementById('res-station-box');
+        if (stationBox) {
+            if (data.physical_station_ground_truth && data.physical_station_ground_truth.observed_india_naqi !== null && data.physical_station_ground_truth.observed_india_naqi !== undefined) {
+                const sg = data.physical_station_ground_truth;
+                const sign = sg.residual > 0 ? '+' : '';
+                stationBox.innerHTML = `
+                    <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 8px 12px; font-size: 11px;">
+                        <div style="color: #38bdf8; font-weight: 700; display:flex; justify-content:space-between;">
+                            <span>🏛️ Physical CPCB Station: ${sg.station_name}</span>
+                            <span style="color:#94a3b8;">${sg.source || 'Live Feed'}</span>
+                        </div>
+                        <div style="color: #f1f5f9; margin-top: 4px; display:flex; justify-content:space-between; align-items:center;">
+                            <span>Physical India NAQI: <b style="color: #38bdf8; font-size: 13px;">${sg.observed_india_naqi}</b> (${sg.cpcb_category || 'CPCB'})</span>
+                            <span style="color:#f87171; font-weight:600;">Residual: ${sign}${sg.residual} pts</span>
+                        </div>
+                        <div style="color: #94a3b8; font-size: 10px; margin-top: 2px;">
+                            Dominant: <b>${sg.dominant_pollutant || 'PM2.5'}</b> · Observed: ${sg.observed_time || 'Today'}
+                        </div>
+                    </div>
+                `;
+            } else {
+                stationBox.innerHTML = `
+                    <div style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 8px; padding: 6px 10px; font-size: 11px; color: #10b981;">
+                        ✨ <b>Unmonitored Coordinate</b> — No physical CAAQMS station placed at this location. Ground AQI is estimated by the Virtual Sensor ML model.
+                    </div>
+                `;
+            }
+        }
+
         // Observation Time and Latency
         const obsEl = document.getElementById('res-obs-time');
         if (obsEl) obsEl.textContent = data.observation_time || 'Live';
@@ -434,6 +515,28 @@ document.addEventListener('DOMContentLoaded', () => {
             map.setView([20.65, 78.45], 7, { animate: true });
         });
     }
+
+    // Basemap Layer Toggle Pills
+    const btnDark = document.getElementById('btn-layer-dark');
+    const btnOsm = document.getElementById('btn-layer-osm');
+    const btnSat = document.getElementById('btn-layer-sat');
+
+    function setActiveBasemap(targetLayer, activeBtn) {
+        if (!map) return;
+        [esriDarkLayer, osmStandardLayer, esriSatelliteLayer].forEach(l => {
+            if (l && map.hasLayer(l)) map.removeLayer(l);
+        });
+        if (targetLayer) targetLayer.addTo(map);
+
+        [btnDark, btnOsm, btnSat].forEach(b => {
+            if (b) b.classList.remove('active');
+        });
+        if (activeBtn) activeBtn.classList.add('active');
+    }
+
+    if (btnDark) btnDark.addEventListener('click', () => setActiveBasemap(esriDarkLayer, btnDark));
+    if (btnOsm) btnOsm.addEventListener('click', () => setActiveBasemap(osmStandardLayer, btnOsm));
+    if (btnSat) btnSat.addEventListener('click', () => setActiveBasemap(esriSatelliteLayer, btnSat));
 
     // Custom Form Submission
     const predForm = document.getElementById('prediction-form');

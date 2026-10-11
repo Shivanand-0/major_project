@@ -15,7 +15,9 @@ RAW_DIR = ML_DIR / "data" / "raw"
 VALIDATION_DIR = ML_DIR / "data" / "validation"
 
 PIPELINE_MODEL_PATH = MODELS_DIR / "pipeline_model.joblib"
-OSM_NETWORK_PATH = RAW_DIR / "real_osm_road_network.json"
+OSM_NETWORK_PATH = RAW_DIR / "osm_roads" / "osm_road_network.json"
+if not OSM_NETWORK_PATH.exists():
+    OSM_NETWORK_PATH = RAW_DIR / "real_osm_road_network.json"
 VALIDATION_REPORT_PATH = VALIDATION_DIR / "realtime_validation_report.json"
 
 # Add ML directory and serialization directory to sys.path so unpickling works

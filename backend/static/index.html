@@ -98,8 +98,11 @@
                         <p class="panel-subtitle">Click anywhere on the map to deploy a point Virtual Sensor at those coordinates</p>
                     </div>
                     <div class="map-controls">
-                        <button id="toggle-heatmap" class="glass-pill-btn active">Spatial Mesh</button>
-                        <button id="reset-view" class="glass-pill-btn">Reset View</button>
+                        <button id="btn-layer-dark" class="glass-pill-btn active" title="Sleek Dark Canvas (No API Key)">🌑 Dark</button>
+                        <button id="btn-layer-osm" class="glass-pill-btn" title="OpenStreetMap Streets & Boundaries">🗺️ Streets</button>
+                        <button id="btn-layer-sat" class="glass-pill-btn" title="Esri High-Resolution Satellite">🛰️ Satellite</button>
+                        <button id="toggle-heatmap" class="glass-pill-btn active" title="Toggle AI Spatial Mesh Grid">Spatial Mesh</button>
+                        <button id="reset-view" class="glass-pill-btn" title="Reset Map View">Reset View</button>
                     </div>
                 </div>
 
@@ -199,6 +202,9 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Physical Ground Station Status (Shown only if physical station placed at coordinate) -->
+                        <div id="res-station-box" style="margin-top: 10px;"></div>
 
                         <!-- Live Observation Timestamp Badge -->
                         <div class="obs-timestamp-bar">

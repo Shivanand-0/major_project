@@ -77,15 +77,16 @@ async def root():
 async def health_check():
     """Returns system status, model metadata, and architecture stats."""
     estimator = get_estimator()
-    meta = estimator.pipeline.metadata
+    meta = estimator.pipeline.metadata or {}
+    model_name = meta.get("model_type", "LightGBM Regressor")
     return {
         "status": "online",
-        "model_type": meta.get("model_type"),
-        "training_framework": "XGBoost Regressor Champion",
+        "model_type": model_name,
+        "training_framework": f"{model_name} Champion",
         "features_count": len(estimator.pipeline.feature_names),
-        "test_mae": meta.get("error_margin_mae", 6.01),
-        "test_r2": meta.get("r2_score", 0.9690),
-        "target_standard": "CPCB India NAQI (24-hr Max Sub-Index)",
+        "test_mae": meta.get("error_margin_mae", meta.get("metrics", {}).get("test_mae", 22.61)),
+        "test_r2": meta.get("r2_score", meta.get("metrics", {}).get("test_r2", 0.584)),
+        "target_standard": "CPCB India NAQI (Max Criteria Pollutant Sub-Index)",
         "model_artifact": str(PIPELINE_MODEL_PATH.name)
     }
 

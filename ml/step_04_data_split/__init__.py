@@ -7,12 +7,11 @@ from .config import (
     MASTER_MATRIX_FILE,
     SPLIT_DIR,
     LOSO_DIR,
-    TRAIN_START,
-    TRAIN_END,
-    VAL_START,
-    VAL_END,
-    TEST_START,
-    TEST_END,
+    SPLIT_STRATEGY,
+    BLOCK_TRAIN_DAY_MAX,
+    BLOCK_VAL_DAY_MIN,
+    BLOCK_VAL_DAY_MAX,
+    BLOCK_TEST_DAY_MIN,
     TARGET_COLUMN,
     DROP_COLUMNS
 )
@@ -22,13 +21,13 @@ __all__ = [
     "MASTER_MATRIX_FILE",
     "SPLIT_DIR",
     "LOSO_DIR",
-    "TRAIN_START",
-    "TRAIN_END",
-    "VAL_START",
-    "VAL_END",
-    "TEST_START",
-    "TEST_END",
+    "SPLIT_STRATEGY",
+    "BLOCK_TRAIN_DAY_MAX",
+    "BLOCK_VAL_DAY_MIN",
+    "BLOCK_VAL_DAY_MAX",
+    "BLOCK_TEST_DAY_MIN",
     "TARGET_COLUMN",
     "DROP_COLUMNS",
     "DataSplitter"
 ]
+

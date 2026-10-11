@@ -2,17 +2,23 @@
 Master Training Orchestrator for Step 05: Batch & Train.
 Orchestrates:
   1. LightGBM & XGBoost chronological window training.
-  2. Side-by-side model benchmarking (RMSE, MAE, R²).
-  3. Spatial Cross-Station Transfer (LOSO) evaluation (Nagpur <-> Chandrapur).
+  2. Side-by-side model benchmarking (RMSE, MAE, R2).
+  3. Spatial Leave-One-Station-Out (LOSO) transfer evaluation across all 4 Vidarbha stations.
   4. Champion model selection and deployment packaging.
 """
 
+import sys
 import joblib
 import json
 import pandas as pd
 import numpy as np
 from pathlib import Path
 from typing import Dict, Any
+
+# Ensure ML root is on path for direct script execution
+_ML_ROOT = Path(__file__).resolve().parent.parent
+if str(_ML_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ML_ROOT))
 
 try:
     from .config import (
@@ -22,14 +28,14 @@ try:
     )
     from .train_lgbm import LightGBMTrainer
     from .train_xgboost import XGBoostTrainer
-except ImportError:
-    from config import (
+except (ImportError, ValueError):
+    from step_05_batch_and_train.config import (
         MODELS_DIR,
         SPLIT_DIR,
         LOSO_DIR
     )
-    from train_lgbm import LightGBMTrainer
-    from train_xgboost import XGBoostTrainer
+    from step_05_batch_and_train.train_lgbm import LightGBMTrainer
+    from step_05_batch_and_train.train_xgboost import XGBoostTrainer
 
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from lightgbm import LGBMRegressor
@@ -44,20 +50,18 @@ class TrainingPipelineOrchestrator:
 
     def run_spatial_transfer_benchmark(self, model_class=LGBMRegressor) -> Dict[str, Any]:
         """
-        Tests Cross-Station Spatial Transfer (Nagpur <-> Chandrapur).
-        Proves how accurately the model infers AQI for a city not seen during training.
+        Tests Cross-Station Spatial Transfer (LOSO) across all 4 Vidarbha physical stations.
+        Evaluates how accurately the model estimates AQI for an unmonitored city when trained
+        exclusively on the remaining 3 cities.
         """
-        print("\n" + "=" * 75)
-        print("[SPATIAL EVALUATION] Benchmarking Cross-Station Transfer Generalization")
-        print("=" * 75)
+        print("\n" + "=" * 80)
+        print("[SPATIAL EVALUATION] Benchmarking Cross-Station Transfer Generalization (LOSO)")
+        print("=" * 80)
 
-        holdouts = [
-            ("nagpur_central", "chandrapur_midc"),
-            ("chandrapur_midc", "nagpur_central")
-        ]
+        holdout_stations = ["nagpur_central", "chandrapur_midc", "amravati_central", "akola_west"]
 
         loso_results = {}
-        for test_st, train_st in holdouts:
+        for test_st in holdout_stations:
             x_train_file = LOSO_DIR / f"X_train_holdout_{test_st}.csv"
             y_train_file = LOSO_DIR / f"y_train_holdout_{test_st}.csv"
             x_test_file  = LOSO_DIR / f"X_test_holdout_{test_st}.csv"
@@ -71,8 +75,20 @@ class TrainingPipelineOrchestrator:
             X_te = pd.read_csv(x_test_file)
             y_te = pd.read_csv(y_test_file).squeeze("columns")
 
-            # Fit model on training city only
-            m = model_class(n_estimators=600, learning_rate=0.03, max_depth=7, num_leaves=31, random_state=42, verbose=-1)
+            # Fit regularized model on the other 3 cities
+            m = model_class(
+                n_estimators=600,
+                learning_rate=0.03,
+                max_depth=5,
+                num_leaves=24,
+                min_child_samples=30,
+                subsample=0.8,
+                colsample_bytree=0.8,
+                reg_alpha=1.0,
+                reg_lambda=3.0,
+                random_state=42,
+                verbose=-1
+            )
             m.fit(X_tr, y_tr)
             y_pred = m.predict(X_te)
 
@@ -80,22 +96,22 @@ class TrainingPipelineOrchestrator:
             mae  = round(float(mean_absolute_error(y_te, y_pred)), 2)
             rmse = round(float(np.sqrt(mean_squared_error(y_te, y_pred))), 2)
 
-            loso_results[f"train_{train_st}_test_{test_st}"] = {
-                "train_station": train_st,
-                "test_station": test_st,
+            loso_results[f"holdout_{test_st}"] = {
+                "holdout_station": test_st,
+                "train_rows": len(y_tr),
                 "test_rows": len(y_te),
                 "r2": r2,
                 "mae": mae,
                 "rmse": rmse
             }
-            print(f"  • Trained exclusively on {train_st.upper()} -> Inferred {test_st.upper()} : R² = {r2:.4f} | MAE = {mae:.2f} | RMSE = {rmse:.2f}")
+            print(f"  * Holdout [{test_st.upper():<18}] (Train on 3 other nodes: {len(X_tr):,} rows) -> Test R2: {r2:.4f} | MAE: {mae:.2f} | RMSE: {rmse:.2f}")
 
         return loso_results
 
     def run_full_training_pipeline(self) -> Dict[str, Any]:
         """Runs complete Step 05 training pipeline."""
         print("*" * 80)
-        print("STEP 05: BATCH & TRAIN — MACHINE LEARNING ESTIMATION PIPELINE")
+        print("STEP 05: BATCH & TRAIN -- MACHINE LEARNING ESTIMATION PIPELINE")
         print("*" * 80)
 
         # 1. Train LightGBM
@@ -111,7 +127,7 @@ class TrainingPipelineOrchestrator:
         print("\n" + "=" * 80)
         print("MODEL COMPARISON (CHRONOLOGICAL OUT-OF-SAMPLE WINTER TEST SET)")
         print("=" * 80)
-        print(f"{'Model':<15} | {'Test R²':<10} | {'Test MAE':<10} | {'Test RMSE':<10} | {'Val R²':<10}")
+        print(f"{'Model':<15} | {'Test R2':<10} | {'Test MAE':<10} | {'Test RMSE':<10} | {'Val R2':<10}")
         print("-" * 80)
         print(f"{'LightGBM':<15} | {lgbm_metrics['test']['r2']:<10.4f} | {lgbm_metrics['test']['mae']:<10.2f} | {lgbm_metrics['test']['rmse']:<10.2f} | {lgbm_metrics['val']['r2']:<10.4f}")
         print(f"{'XGBoost':<15} | {xgb_metrics['test']['r2']:<10.4f} | {xgb_metrics['test']['mae']:<10.2f} | {xgb_metrics['test']['rmse']:<10.2f} | {xgb_metrics['val']['r2']:<10.4f}")
@@ -132,7 +148,7 @@ class TrainingPipelineOrchestrator:
         champion_obj = joblib.load(champion_model_file)
         joblib.dump(champion_obj, champion_dest)
 
-        print(f"\n[Champion Selected]: {champion_name} (Highest Out-of-Sample R²: {champion_metrics['test']['r2']:.4f})")
+        print(f"\n[Champion Selected]: {champion_name} (Highest Out-of-Sample R2: {champion_metrics['test']['r2']:.4f})")
         print(f"[Champion Artifact]: {champion_dest}")
 
         # Save Final Benchmark Report

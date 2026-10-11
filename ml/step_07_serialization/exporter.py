@@ -16,20 +16,30 @@ try:
     from .config import (
         CHAMPION_MODEL_FILE,
         SPLIT_METADATA_FILE,
+        BENCHMARK_REPORT_FILE,
+        VALIDATION_REPORT_FILE,
+        X_TEST_FILE,
+        Y_TEST_FILE,
+        TEST_MATRIX_FILE,
         PIPELINE_MODEL_FILE,
         PIPELINE_METADATA_FILE,
         MODELS_DIR,
-        UNMONITORED_DIR
+        SPLIT_DIR
     )
     from .inference_engine import VirtualSensorPipeline
 except ImportError:
     from config import (
         CHAMPION_MODEL_FILE,
         SPLIT_METADATA_FILE,
+        BENCHMARK_REPORT_FILE,
+        VALIDATION_REPORT_FILE,
+        X_TEST_FILE,
+        Y_TEST_FILE,
+        TEST_MATRIX_FILE,
         PIPELINE_MODEL_FILE,
         PIPELINE_METADATA_FILE,
         MODELS_DIR,
-        UNMONITORED_DIR
+        SPLIT_DIR
     )
     from inference_engine import VirtualSensorPipeline
 
@@ -49,7 +59,7 @@ class PipelineExporter:
 
     def export_and_verify(self) -> Dict[str, Any]:
         print("=" * 80)
-        print("STEP 07: SERIALIZATION — PRODUCTION ARTIFACT PACKAGING")
+        print("STEP 07: SERIALIZATION -- PRODUCTION ARTIFACT PACKAGING")
         print("=" * 80)
 
         # 1. Load Trained Model
@@ -64,25 +74,41 @@ class PipelineExporter:
         feature_names = meta.get("feature_names", [])
         print(f"[Schema] Total Registered Input Features: {len(feature_names)}")
 
-        # 3. Create Pipeline Wrapper
-        print("[Packaging] Assembling VirtualSensorPipeline instance...")
+        # 3. Load Validation Metrics for Metadata
+        bench_metrics = {}
+        if BENCHMARK_REPORT_FILE.exists():
+            with open(BENCHMARK_REPORT_FILE, "r") as f:
+                bench_metrics = json.load(f)
+
+        val_metrics = {}
+        if VALIDATION_REPORT_FILE.exists():
+            with open(VALIDATION_REPORT_FILE, "r") as f:
+                val_metrics = json.load(f)
+
+        overall = val_metrics.get("overall_test_metrics", {})
+        idw_comp = val_metrics.get("idw_baseline_comparison", {})
+
         pipeline_metadata = {
-            "model_type": str(type(model).__name__),
+            "model_architecture": bench_metrics.get("champion_model", type(model).__name__),
             "target_variable": meta.get("target_variable", "india_naqi"),
             "feature_count": len(feature_names),
-            "test_r2": 0.9690,
-            "test_mae": 6.01,
-            "error_reduction_vs_idw": "93.1%",
-            "standards": "CPCB India NAQI (6-pollutant max sub-index)"
+            "test_r2": overall.get("r2", 0.5765),
+            "test_mae": overall.get("mae", 22.61),
+            "test_rmse": overall.get("rmse", 35.83),
+            "pearson_r": overall.get("pearson_r", 0.7638),
+            "error_reduction_vs_idw": f"{idw_comp.get('error_reduction_percentage', 1.5)}%",
+            "standards": "CPCB India NAQI (6-pollutant continuous max sub-index)"
         }
 
+        # 4. Create Pipeline Wrapper
+        print("[Packaging] Assembling VirtualSensorPipeline instance...")
         pipeline = VirtualSensorPipeline(
             model=model,
             feature_names=feature_names,
             metadata=pipeline_metadata
         )
 
-        # 4. Save Serialized Artifact
+        # 5. Save Serialized Artifact
         print(f"[Exporting] Saving immutable artifact to: {self.output_file}")
         joblib.dump(pipeline, self.output_file)
 
@@ -97,7 +123,7 @@ class PipelineExporter:
         file_size_mb = self.output_file.stat().st_size / (1024 * 1024)
         print(f"[SUCCESS] Serialized bundle created ({file_size_mb:.2f} MB)")
 
-        # 5. Automated Verification & Sanity Test
+        # 6. Automated Verification & Sanity Test
         print("\n" + "-" * 60)
         print("AUTOMATED VERIFICATION TEST:")
         print("-" * 60)
@@ -106,32 +132,41 @@ class PipelineExporter:
         print(f"[Test 1] Reloading {self.output_file.name} from disk...")
         reloaded_pipeline: VirtualSensorPipeline = joblib.load(self.output_file)
         assert len(reloaded_pipeline.feature_names) == len(feature_names), "Feature mismatch!"
+        print(f"  [OK] Successfully loaded pipeline with {len(reloaded_pipeline.feature_names)} features.")
 
-        # Test on Unmonitored Deployment City (Amravati Central)
-        amravati_file = UNMONITORED_DIR / "X_unmonitored_amravati_central.csv"
-        if amravati_file.exists():
-            print(f"[Test 2] Running batch inference on Amravati deployment samples ({amravati_file.name})...")
-            df_amravati = pd.read_csv(amravati_file)
-            sample_batch = df_amravati.head(5)
-            preds_batch = reloaded_pipeline.predict_batch(sample_batch)
-            print("  • Sample Batch Predictions (Amravati Virtual Sensor):")
+        # Test Batch Inference on Test Matrix
+        if X_TEST_FILE.exists() and TEST_MATRIX_FILE.exists():
+            print(f"\n[Test 2] Running batch inference on 5 out-of-sample test samples...")
+            X_test = pd.read_csv(X_TEST_FILE)
+            test_mat = pd.read_csv(TEST_MATRIX_FILE)
+            sample_X = X_test.head(5)
+            preds_batch = reloaded_pipeline.predict_batch(sample_X)
+            
+            print("  - Sample Predictions vs Ground Truth:")
             for idx, r in preds_batch.iterrows():
-                print(f"    Sample {idx+1}: Predicted NAQI = {r['predicted_india_naqi']:>5.1f} | Category = {r['category']:<12} | Color = {r['color']}")
+                station = test_mat.iloc[idx].get("station_id", "Unknown")
+                actual_val = test_mat.iloc[idx].get("india_naqi", 0.0)
+                pred_val = r["predicted_india_naqi"]
+                diff = pred_val - actual_val
+                print(f"    Sample {idx+1} [{station:<16}]: Actual NAQI = {actual_val:>5.1f} | Predicted = {pred_val:>5.1f} (err: {diff:>+5.1f}) | {r['category']:<12}")
 
         # Test Single Coordinate Simulation
-        print(f"\n[Test 3] Running single-point inference simulation...")
+        print(f"\n[Test 3] Running single-point virtual inference simulation...")
         sample_dict = {f: 1.0 for f in feature_names}
         sample_dict["pm2_5"] = 65.0
         sample_dict["pm10"] = 120.0
         sample_dict["nitrogen_dioxide"] = 45.0
         sample_dict["temperature_2m"] = 28.0
-        sample_dict["wind_speed_10m"] = 8.5
+        sample_dict["dew_point_2m"] = 16.0
+        sample_dict["wind_speed_10m"] = 6.5
+        sample_dict["cams_satellite_naqi"] = 110.0
 
         single_result = reloaded_pipeline.predict_single(sample_dict)
-        print(f"  • Single-Point Test Result:")
+        print(f"  - Single-Point Test Result:")
         print(f"    Predicted NAQI : {single_result['predicted_india_naqi']}")
-        print(f"    CPCB Category  : {single_result['category']}")
-        print(f"    Confidence Int : {single_result['confidence_interval']['lower']} to {single_result['confidence_interval']['upper']}")
+        print(f"    CPCB Category  : {single_result['category']} (Color: {single_result['color']})")
+        print(f"    Dominant Poll. : {single_result['dominant_pollutant']}")
+        print(f"    Confidence Int : {single_result['confidence_interval']['lower']} to {single_result['confidence_interval']['upper']} (MAE: +- {single_result['confidence_interval']['error_margin_mae']})")
         print(f"    Advisory       : {single_result['health_advisory']}")
 
         print("\n" + "=" * 80)

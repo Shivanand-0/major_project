@@ -1,24 +1,37 @@
 """
-Authentic CPCB / MPCB Ground Truth Data Ingestion.
-Primary Source: Official CPCB CCR Portal (app.cpcbccr.com) — real-time live hourly readings.
-Secondary Source: Official data.gov.in API (if accessible with DATAGOV_API_KEY).
-Fallback Source: WAQI API (token from .env).
+CPCB Live Ground Truth Ingestion Module.
+Fetches real-time hourly observations from physical CPCB / MPCB CAAQMS stations.
 
-Fetches verified ground monitoring station readings (India NAQI, pollutants PM2.5, PM10, NO2, SO2, CO, O3).
+Primary Source: Official CPCB CCR Portal (app.cpcbccr.com) — live HTML scraping.
+Fallback Source: WAQI API (if WAQI_TOKEN is set in environment or .env).
+
+This module handles LIVE / REAL-TIME readings only.
+For bulk historical CPCB data, use cpcb_bulk_ingestion.py (OpenAQ S3 archive).
 """
 
 import os
 import re
 import requests
+import sys
 import pandas as pd
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, Optional
 
+# Ensure ML root is in path for direct execution
+_ML_ROOT = Path(__file__).resolve().parent.parent
+if str(_ML_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ML_ROOT))
+
+try:
+    from .naqi import compute_subindex, get_naqi_category
+except (ImportError, ValueError):
+    from step_01_raw_ingestion.naqi import compute_subindex, get_naqi_category
+
 IST = timezone(timedelta(hours=5, minutes=30))
 ENV_PATH = Path(r"d:\college_dev\.env")
 
-# CPCB/MPCB Physical Station URL Mappings in Vidarbha
+# CPCB / MPCB Physical Station URL Mappings for Vidarbha
 CPCB_PORTAL_CITIES = {
     "NAGPUR_CENTRAL": {
         "url": "https://app.cpcbccr.com/in/maharashtra/nagpur-aqi",
@@ -35,7 +48,7 @@ CPCB_PORTAL_CITIES = {
 }
 
 
-def load_env_var(key_name: str) -> Optional[str]:
+def _load_env_var(key_name: str) -> Optional[str]:
     """Loads environment variable from system or .env file."""
     val = os.environ.get(key_name)
     if not val and ENV_PATH.exists():
@@ -47,35 +60,16 @@ def load_env_var(key_name: str) -> Optional[str]:
     return val
 
 
-def compute_cpcb_pm25_subindex(pm25: float) -> float:
-    """Computes India CPCB NAQI sub-index for PM2.5 (24-hr/1-hr concentration in ug/m3)."""
-    if pm25 <= 0:
-        return 0.0
-    elif pm25 <= 30:
-        return round(pm25 * 50.0 / 30.0, 1)
-    elif pm25 <= 60:
-        return round(50.0 + (pm25 - 30.0) * 50.0 / 30.0, 1)
-    elif pm25 <= 90:
-        return round(100.0 + (pm25 - 60.0) * 100.0 / 30.0, 1)
-    elif pm25 <= 120:
-        return round(200.0 + (pm25 - 90.0) * 100.0 / 30.0, 1)
-    elif pm25 <= 250:
-        return round(300.0 + (pm25 - 120.0) * 100.0 / 130.0, 1)
-    else:
-        return round(400.0 + (pm25 - 250.0) * 100.0 / 130.0, 1)
-
-
 class CPCBStationFeed:
-    """Fetches authentic real-time ground truth CPCB readings from official CPCB portals."""
+    """Fetches real-time ground truth CPCB readings from official portals."""
 
     def __init__(self):
         self.headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.9'
         }
-        self.waqi_token = load_env_var("WAQI_TOKEN")
-        self.datagov_key = load_env_var("DATAGOV_API_KEY")
+        self.waqi_token = _load_env_var("WAQI_TOKEN")
 
     def fetch_from_cpcb_portal(self, station_id: str) -> Optional[Dict[str, Any]]:
         """Scrapes live hourly observations directly from official CPCB CCR portal."""
@@ -83,9 +77,8 @@ class CPCBStationFeed:
         if not meta:
             return None
 
-        url = meta["url"]
         try:
-            resp = requests.get(url, headers=self.headers, timeout=12)
+            resp = requests.get(meta["url"], headers=self.headers, timeout=12)
             if resp.status_code != 200:
                 return None
 
@@ -105,21 +98,42 @@ class CPCBStationFeed:
 
             # Extract pollutants
             pollutants = {}
-            for p, std_key in [("PM2.5", "pm25"), ("PM10", "pm10"), ("NO₂", "no2"), 
+            for p, std_key in [("PM2.5", "pm25"), ("PM10", "pm10"), ("NO₂", "no2"),
                                ("SO₂", "so2"), ("CO", "co"), ("O₃", "o3")]:
                 p_esc = re.escape(p)
                 p_match = re.search(rf'{p_esc}</p>.*?tabular-nums[^>]*>(\d+)<span', html, re.DOTALL)
                 if p_match:
                     pollutants[std_key] = float(p_match.group(1))
 
+            # Calculate authentic CPCB India NAQI from physical criteria pollutants
+            sub_indices = {}
+            for p_code, p_key in [("pm2_5", "pm25"), ("pm10", "pm10"), ("nitrogen_dioxide", "no2"),
+                                  ("sulphur_dioxide", "so2"), ("carbon_monoxide", "co"), ("ozone", "o3")]:
+                val = pollutants.get(p_key)
+                if val is not None and not pd.isna(val):
+                    sub = compute_subindex(float(val), p_code)
+                    if sub is not None and not pd.isna(sub):
+                        sub_indices[p_key] = round(float(sub), 1)
+
+            if sub_indices:
+                india_naqi_val = max(sub_indices.values())
+                dominant_pol = max(sub_indices, key=sub_indices.get)
+                category = get_naqi_category(india_naqi_val)
+            else:
+                india_naqi_val = aqi_val
+                dominant_pol = "PM2.5"
+
             pm25 = pollutants.get("pm25")
-            cpcb_pm25_sub = compute_cpcb_pm25_subindex(pm25) if pm25 is not None else None
+            cpcb_pm25_sub = sub_indices.get("pm25")
 
             return {
                 "station_id": station_id,
                 "station_name": meta["station_name"],
                 "source": "CPCB Official CCR Portal (Live)",
-                "ground_cpcb_naqi": aqi_val,
+                "ground_india_naqi": india_naqi_val,
+                "ground_cpcb_naqi": india_naqi_val,
+                "dominant_pollutant": dominant_pol,
+                "sub_indices": sub_indices,
                 "cpcb_pm25_subindex": cpcb_pm25_sub,
                 "observed_time": f"Today {obs_time} IST",
                 "category": category,
@@ -145,27 +159,59 @@ class CPCBStationFeed:
 
         uid = meta["waqi_uid"]
         try:
-            resp = requests.get(f"https://api.waqi.info/feed/@{uid}/", params={"token": self.waqi_token}, timeout=10)
+            resp = requests.get(f"https://api.waqi.info/feed/@{uid}/",
+                                params={"token": self.waqi_token}, timeout=10)
             if resp.status_code == 200:
                 data = resp.json()
                 if data.get("status") == "ok":
                     d = data["data"]
                     iaqi = d.get("iaqi", {})
-                    pm25 = iaqi.get("pm25", {}).get("v")
-                    return {
-                        "station_id": station_id,
-                        "station_name": d.get("city", {}).get("name", meta["station_name"]),
-                        "source": "WAQI API Feed",
-                        "ground_cpcb_naqi": d.get("aqi"),
-                        "cpcb_pm25_subindex": compute_cpcb_pm25_subindex(pm25) if pm25 else None,
-                        "observed_time": d.get("time", {}).get("s"),
-                        "category": "N/A",
-                        "pm25": pm25,
+                    pollutants = {
+                        "pm25": iaqi.get("pm25", {}).get("v"),
                         "pm10": iaqi.get("pm10", {}).get("v"),
                         "no2": iaqi.get("no2", {}).get("v"),
                         "so2": iaqi.get("so2", {}).get("v"),
                         "co": iaqi.get("co", {}).get("v"),
                         "o3": iaqi.get("o3", {}).get("v")
+                    }
+
+                    # Compute official CPCB India NAQI from physical pollutants
+                    sub_indices = {}
+                    for p_code, p_key in [("pm2_5", "pm25"), ("pm10", "pm10"), ("nitrogen_dioxide", "no2"),
+                                          ("sulphur_dioxide", "so2"), ("carbon_monoxide", "co"), ("ozone", "o3")]:
+                        val = pollutants.get(p_key)
+                        if val is not None and not pd.isna(val):
+                            sub = compute_subindex(float(val), p_code)
+                            if sub is not None and not pd.isna(sub):
+                                sub_indices[p_key] = round(float(sub), 1)
+
+                    if sub_indices:
+                        india_naqi_val = max(sub_indices.values())
+                        dominant_pol = max(sub_indices, key=sub_indices.get)
+                        category = get_naqi_category(india_naqi_val)
+                    else:
+                        india_naqi_val = d.get("aqi")
+                        dominant_pol = "PM2.5"
+                        category = "Moderate"
+
+                    pm25 = pollutants.get("pm25")
+                    return {
+                        "station_id": station_id,
+                        "station_name": d.get("city", {}).get("name", meta["station_name"]),
+                        "source": "CPCB Physical Feed (WAQI)",
+                        "ground_india_naqi": india_naqi_val,
+                        "ground_cpcb_naqi": india_naqi_val,
+                        "dominant_pollutant": dominant_pol,
+                        "sub_indices": sub_indices,
+                        "cpcb_pm25_subindex": sub_indices.get("pm25"),
+                        "observed_time": d.get("time", {}).get("s"),
+                        "category": category,
+                        "pm25": pm25,
+                        "pm10": pollutants.get("pm10"),
+                        "no2": pollutants.get("no2"),
+                        "so2": pollutants.get("so2"),
+                        "co": pollutants.get("co"),
+                        "o3": pollutants.get("o3")
                     }
         except Exception as e:
             print(f"[WAQI Fallback] Error fetching {uid}: {e}")
@@ -175,16 +221,11 @@ class CPCBStationFeed:
         """Collects verified live ground truth readings for Vidarbha physical stations."""
         records = []
         for station_id in CPCB_PORTAL_CITIES.keys():
-            # 1. Try official CPCB portal first (fresh hourly readings)
             reading = self.fetch_from_cpcb_portal(station_id)
-
-            # 2. If portal fails, fallback to WAQI
-            if not reading or reading.get("ground_cpcb_naqi") is None:
+            if not reading or reading.get("ground_india_naqi") is None:
                 reading = self.fetch_from_waqi(station_id)
-
             if reading:
                 records.append(reading)
-
         return pd.DataFrame(records)
 
 
@@ -192,12 +233,12 @@ if __name__ == "__main__":
     client = CPCBStationFeed()
     df = client.get_ground_truth_snapshot()
     print("=" * 80)
-    print("LIVE CPCB GROUND TRUTH PHYSICAL STATIONS SNAPSHOT:")
+    print("LIVE CPCB GROUND TRUTH SNAPSHOT (INDIA NAQI):")
     print("=" * 80)
     for _, row in df.iterrows():
-        print(f"\nStation: {row['station_name']} ({row['station_id']})")
-        print(f"  Source: {row['source']}")
-        print(f"  Observed Time: {row['observed_time']}")
-        print(f"  CPCB / US AQI: {row['ground_cpcb_naqi']} ({row.get('category', 'N/A')})")
-        print(f"  PM2.5 Sub-Index (India NAQI): {row['cpcb_pm25_subindex']}")
-        print(f"  Pollutants (ug/m3): PM2.5={row['pm25']}, PM10={row['pm10']}, NO2={row['no2']}, SO2={row['so2']}, CO={row['co']}, O3={row['o3']}")
+        print(f"\n{row['station_name']} ({row['station_id']})")
+        print(f"  Source: {row['source']} | Time: {row['observed_time']}")
+        print(f"  India NAQI: {row['ground_india_naqi']} ({row.get('category', 'N/A')}) | Dominant: {row.get('dominant_pollutant')}")
+        print(f"  Sub-indices: {row.get('sub_indices')}")
+        print(f"  Raw Concentrations: PM2.5={row['pm25']}, PM10={row['pm10']}, NO2={row['no2']}, "
+              f"SO2={row['so2']}, CO={row['co']}, O3={row['o3']}")

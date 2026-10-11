@@ -23,15 +23,16 @@ if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
 from step_01_raw_ingestion.config import VIDARBHA_STATIONS
-from step_01_raw_ingestion.weather_ingestion import AuthenticWeatherIngestion
-from step_01_raw_ingestion.air_quality_ingestion import AuthenticAirQualityIngestion
+from step_01_raw_ingestion.weather_ingestion import WeatherIngestion
+from step_01_raw_ingestion.air_quality_ingestion import AirQualityIngestion
 from step_01_raw_ingestion.cpcb_ground_truth import CPCBStationFeed
+from step_01_raw_ingestion.naqi import compute_composite_naqi
 from step_07_serialization.inference_engine import VirtualSensorPipeline
 
 MODELS_DIR = BASE_DIR / "data" / "models"
 VALIDATION_DIR = BASE_DIR / "data" / "validation"
 PIPELINE_MODEL_FILE = MODELS_DIR / "pipeline_model.joblib"
-OSM_FILE = BASE_DIR / "data" / "raw" / "real_osm_road_network.json"
+OSM_FILE = BASE_DIR / "data" / "raw" / "osm_roads" / "osm_road_network.json"
 
 
 def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -57,8 +58,8 @@ class RealTimeValidator:
     """Orchestrates live real-time ingestion, virtual estimation, and CPCB ground validation."""
 
     def __init__(self):
-        self.weather_client = AuthenticWeatherIngestion()
-        self.aq_client = AuthenticAirQualityIngestion()
+        self.weather_client = WeatherIngestion()
+        self.aq_client = AirQualityIngestion()
         self.cpcb_client = CPCBStationFeed()
         self.pipeline: VirtualSensorPipeline = joblib.load(PIPELINE_MODEL_FILE)
 
@@ -132,6 +133,7 @@ class RealTimeValidator:
             "sulphur_dioxide": float(aq_row.get("sulphur_dioxide", 10.0)),
             "ozone": float(aq_row.get("ozone", 40.0)),
             "carbon_monoxide": co,
+            "cams_satellite_naqi": float(compute_composite_naqi(pd.DataFrame([aq_row])).iloc[0]),
             "combustion_tracer_ratio": combustion_ratio,
             "osm_total_roads": total_roads,
             "osm_major_highways": major_highways,
@@ -179,7 +181,9 @@ class RealTimeValidator:
                 cpcb_snapshot[st_id] = {
                     "station_name": row["station_name"],
                     "source": row.get("source", "CPCB Portal"),
-                    "cpcb_naqi": row["ground_cpcb_naqi"],
+                    "india_naqi": row.get("ground_india_naqi", row.get("ground_cpcb_naqi")),
+                    "dominant_pollutant": row.get("dominant_pollutant"),
+                    "sub_indices": row.get("sub_indices", {}),
                     "cpcb_pm25_subindex": row.get("cpcb_pm25_subindex"),
                     "observed_time": row["observed_time"],
                     "category": row.get("category", "N/A"),
@@ -228,7 +232,7 @@ class RealTimeValidator:
 
             # Physical Ground Truth comparison if available
             ground_data = cpcb_snapshot.get(station_id, {})
-            ground_naqi = ground_data.get("cpcb_naqi")
+            ground_naqi = ground_data.get("india_naqi")
 
             res_entry = {
                 "station_id": station_id,
@@ -258,12 +262,12 @@ class RealTimeValidator:
                     g_val = float(ground_naqi)
                     diff = round(pred_naqi - g_val, 1)
                     abs_diff = round(abs(diff), 1)
-                    pm25_sub = ground_data.get("cpcb_pm25_subindex")
-                    pm25_diff = round(pred_naqi - float(pm25_sub), 1) if pm25_sub is not None else None
                     
                     res_entry["cpcb_ground_truth"] = {
-                        "observed_cpcb_naqi": g_val,
-                        "observed_pm25_subindex": pm25_sub,
+                        "observed_india_naqi": g_val,
+                        "cpcb_category": ground_data.get("category"),
+                        "dominant_pollutant": ground_data.get("dominant_pollutant"),
+                        "sub_indices": ground_data.get("sub_indices"),
                         "observed_time": ground_data.get("observed_time"),
                         "station_name": ground_data.get("station_name"),
                         "source": ground_data.get("source"),
@@ -275,12 +279,11 @@ class RealTimeValidator:
                             "co": ground_data.get("co"),
                             "o3": ground_data.get("o3")
                         },
-                        "residual_error_vs_portal_aqi": diff,
-                        "residual_error_vs_pm25_subindex": pm25_diff,
+                        "residual_error": diff,
                         "absolute_error": abs_diff,
                         "within_model_mae_margin": abs_diff <= 15.0
                     }
-                except (ValueError, TypeError) as ve:
+                except (ValueError, TypeError):
                     pass
 
             live_results[station_id] = res_entry
@@ -289,7 +292,7 @@ class RealTimeValidator:
         print("\n" + "=" * 105)
         print("REAL-TIME LIVE VALIDATION REPORT: PHYSICAL CPCB GROUND TRUTH vs. VIRTUAL SENSOR")
         print("=" * 105)
-        print(f"{'City / Node':<24} | {'CPCB Live AQI':<15} | {'PM2.5 Sub-Idx':<15} | {'Virtual Predicted':<18} | {'Category':<14} | {'Live Residual':<12}")
+        print(f"{'City / Node':<24} | {'CPCB India NAQI':<17} | {'Dominant':<10} | {'Virtual Predicted':<18} | {'Category':<14} | {'Live Residual':<12}")
         print("-" * 105)
 
         for st_id, data in live_results.items():
@@ -299,15 +302,15 @@ class RealTimeValidator:
 
             if "cpcb_ground_truth" in data:
                 g = data["cpcb_ground_truth"]
-                g_obs = f"{g['observed_cpcb_naqi']:.0f}"
-                pm25_sub = f"{g['observed_pm25_subindex']:.1f}" if g.get("observed_pm25_subindex") is not None else "N/A"
-                err = f"{g['residual_error_vs_portal_aqi']:+.1f} pts"
+                g_obs = f"{g['observed_india_naqi']:.1f}"
+                dom = str(g.get("dominant_pollutant", "PM2.5"))
+                err = f"{g['residual_error']:+.1f} pts"
             else:
                 g_obs = "[Unmonitored]"
-                pm25_sub = "N/A"
+                dom = "N/A"
                 err = "N/A (Virtual)"
 
-            print(f"{name:<24} | {g_obs:<15} | {pm25_sub:<15} | {v_pred:<18} | {cat:<14} | {err:<12}")
+            print(f"{name:<24} | {g_obs:<17} | {dom:<10} | {v_pred:<18} | {cat:<14} | {err:<12}")
 
         print("=" * 105)
 

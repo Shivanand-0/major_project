@@ -28,30 +28,65 @@ class IDWBaselineEvaluator:
     wind direction, boundary layer inversion, or local traffic physics.
     """
 
+    STATION_COORDS = {
+        "nagpur_central": (21.1458, 79.0882),
+        "chandrapur_midc": (19.9615, 79.2961),
+        "amravati_central": (20.9374, 77.7796),
+        "akola_west": (20.7002, 77.0082),
+        "NAGPUR_CENTRAL": (21.1458, 79.0882),
+        "CHANDRAPUR_MIDC": (19.9615, 79.2961),
+        "AMRAVATI_CENTRAL": (20.9374, 77.7796),
+        "AKOLA_WEST": (20.7002, 77.0082)
+    }
+
     def __init__(self, power: float = 2.0):
         self.power = power
 
-    def evaluate_cross_station(self, df_master: pd.DataFrame, station_a: str, station_b: str) -> Dict[str, Any]:
+    def evaluate_loso_idw(self, df_master: pd.DataFrame, target_station: str) -> Dict[str, Any]:
         """
-        Evaluates IDW spatial transfer: Predicting station_b using station_a at identical timestamps.
+        Evaluates leave-one-station-out IDW: Predicting target_station from all other stations.
         """
-        sub_a = df_master[df_master["station_id"] == station_a].set_index("timestamp")["india_naqi"]
-        sub_b = df_master[df_master["station_id"] == station_b].set_index("timestamp")["india_naqi"]
+        norm_target = target_station.lower()
+        pivot = df_master.pivot_table(index="timestamp", columns="station_id", values="india_naqi")
+        # Normalize column names to lowercase
+        pivot.columns = [str(c).lower() for c in pivot.columns]
 
-        common_idx = sub_a.index.intersection(sub_b.index)
-        y_true = sub_b.loc[common_idx].values
-        # In a 2-station setup, IDW interpolation simply maps station_a's value directly as the estimate for station_b
-        y_pred = sub_a.loc[common_idx].values
+        if norm_target not in pivot.columns:
+            return {"error": f"Station {target_station} not found in matrix"}
+
+        other_stations = [s for s in pivot.columns if s != norm_target and s in self.STATION_COORDS]
+        target_lat, target_lon = self.STATION_COORDS[norm_target]
+
+        distances = {}
+        weights = {}
+        for s in other_stations:
+            s_lat, s_lon = self.STATION_COORDS[s]
+            dist = max(haversine_distance_km(target_lat, target_lon, s_lat, s_lon), 1.0)
+            distances[s] = dist
+            weights[s] = 1.0 / (dist ** self.power)
+
+        total_weight = sum(weights.values())
+        norm_weights = {s: w / total_weight for s, w in weights.items()}
+
+        sub = pivot[[norm_target] + other_stations].dropna()
+        if len(sub) == 0:
+            return {"error": "No overlapping timestamps"}
+
+        y_true = sub[norm_target].values
+        y_pred = np.zeros(len(sub))
+        for s in other_stations:
+            y_pred += sub[s].values * norm_weights[s]
 
         r2   = round(float(r2_score(y_true, y_pred)), 4)
         mae  = round(float(mean_absolute_error(y_true, y_pred)), 2)
         rmse = round(float(np.sqrt(mean_squared_error(y_true, y_pred))), 2)
 
         return {
-            "source_station": station_a,
-            "target_station": station_b,
-            "sample_count": len(common_idx),
+            "target_station": norm_target,
+            "sample_count": len(sub),
             "idw_r2": r2,
             "idw_mae": mae,
-            "idw_rmse": rmse
+            "idw_rmse": rmse,
+            "contributing_stations": other_stations
         }
+

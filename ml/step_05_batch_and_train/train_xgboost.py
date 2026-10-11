@@ -4,6 +4,7 @@ Fits eXtreme Gradient Boosting (XGBoost) regressor on authentic Vidarbha feature
 Employs early stopping against the validation partition and evaluates on the winter holdout test set.
 """
 
+import sys
 import joblib
 import json
 import pandas as pd
@@ -12,6 +13,11 @@ from pathlib import Path
 from typing import Dict, Any, Tuple
 from xgboost import XGBRegressor
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+
+# Ensure ML root is in path for direct execution
+_ML_ROOT = Path(__file__).resolve().parent.parent
+if str(_ML_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ML_ROOT))
 
 try:
     from .config import (
@@ -22,8 +28,8 @@ try:
         XGB_PARAMS,
         EARLY_STOPPING_ROUNDS
     )
-except ImportError:
-    from config import (
+except (ImportError, ValueError):
+    from step_05_batch_and_train.config import (
         X_TRAIN_FILE, Y_TRAIN_FILE,
         X_VAL_FILE, Y_VAL_FILE,
         X_TEST_FILE, Y_TEST_FILE,
@@ -61,7 +67,7 @@ class XGBoostTrainer:
 
         X_train, y_train, X_val, y_val, X_test, y_test = self.load_data()
         feature_names = list(X_train.columns)
-        print(f"[Data] Training Set  : {X_train.shape[0]:,} samples × {X_train.shape[1]} features")
+        print(f"[Data] Training Set  : {X_train.shape[0]:,} samples x {X_train.shape[1]} features")
         print(f"[Data] Validation Set: {X_val.shape[0]:,} samples")
         print(f"[Data] Out-of-Sample : {X_test.shape[0]:,} samples (Winter Inversion Test)")
 
@@ -109,9 +115,9 @@ class XGBoostTrainer:
 
         print("\n" + "-" * 50)
         print("XGBoost Performance Summary:")
-        print(f"  • Train Set      -> R²: {metrics['train']['r2']:.4f} | MAE: {metrics['train']['mae']:.2f} | RMSE: {metrics['train']['rmse']:.2f}")
-        print(f"  • Validation Set -> R²: {metrics['val']['r2']:.4f} | MAE: {metrics['val']['mae']:.2f} | RMSE: {metrics['val']['rmse']:.2f}")
-        print(f"  • Test Set (Out) -> R²: {metrics['test']['r2']:.4f} | MAE: {metrics['test']['mae']:.2f} | RMSE: {metrics['test']['rmse']:.2f}")
+        print(f"  * Train Set      -> R2: {metrics['train']['r2']:.4f} | MAE: {metrics['train']['mae']:.2f} | RMSE: {metrics['train']['rmse']:.2f}")
+        print(f"  * Validation Set -> R2: {metrics['val']['r2']:.4f} | MAE: {metrics['val']['mae']:.2f} | RMSE: {metrics['val']['rmse']:.2f}")
+        print(f"  * Test Set (Out) -> R2: {metrics['test']['r2']:.4f} | MAE: {metrics['test']['mae']:.2f} | RMSE: {metrics['test']['rmse']:.2f}")
         print("-" * 50)
 
         # Feature Importance
@@ -135,9 +141,9 @@ class XGBoostTrainer:
             json.dump(metrics, f, indent=2)
 
         print(f"\n[Artifacts Saved]")
-        print(f"  • Model       : {model_path}")
-        print(f"  • Importances : {importance_path}")
-        print(f"  • Metrics     : {metrics_path}")
+        print(f"  * Model       : {model_path}")
+        print(f"  * Importances : {importance_path}")
+        print(f"  * Metrics     : {metrics_path}")
         print("=" * 75)
 
         return metrics

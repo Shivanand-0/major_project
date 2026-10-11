@@ -27,31 +27,37 @@ Y_TEST_FILE  = SPLIT_DIR / "y_test.csv"
 # Target Variable
 TARGET_NAME = "india_naqi"
 
-# LightGBM Regressor Hyperparameters
+# LightGBM Regressor Hyperparameters (Regularized for Robust Generalization)
 LGBM_PARAMS = {
     "objective": "regression",
     "metric": "rmse",
     "boosting_type": "gbdt",
     "learning_rate": 0.03,
-    "n_estimators": 1200,
-    "num_leaves": 31,
-    "max_depth": 7,
+    "n_estimators": 1000,
+    "num_leaves": 24,
+    "max_depth": 5,
+    "min_child_samples": 30,
     "subsample": 0.8,
     "colsample_bytree": 0.8,
+    "reg_alpha": 1.0,
+    "reg_lambda": 3.0,
     "random_state": 42,
     "n_jobs": -1,
     "verbose": -1
 }
 
-# XGBoost Regressor Hyperparameters
+# XGBoost Regressor Hyperparameters (Regularized for Robust Generalization)
 XGB_PARAMS = {
     "objective": "reg:squarederror",
     "eval_metric": "rmse",
     "learning_rate": 0.03,
-    "n_estimators": 1200,
-    "max_depth": 6,
+    "n_estimators": 1000,
+    "max_depth": 5,
+    "min_child_weight": 10,
     "subsample": 0.8,
     "colsample_bytree": 0.8,
+    "reg_alpha": 1.0,
+    "reg_lambda": 3.0,
     "random_state": 42,
     "n_jobs": -1
 }

@@ -150,11 +150,8 @@ class ModelValidationEngine:
         print("-" * 60)
 
         # Load master cleaned matrix for direct station-to-station IDW
-        clean_master_file = BASE_DIR / "data" / "clean" / "master_analytical_matrix.csv"
+        clean_master_file = BASE_DIR / "data" / "clean" / "master_analytical_matrix_cpcb_2025.csv"
         df_master = pd.read_csv(clean_master_file)
-
-        idw_res_nagpur = self.idw_evaluator.evaluate_cross_station(df_master, "CHANDRAPUR_MIDC", "NAGPUR_CENTRAL")
-        idw_res_chandrapur = self.idw_evaluator.evaluate_cross_station(df_master, "NAGPUR_CENTRAL", "CHANDRAPUR_MIDC")
 
         # Load our ML Cross-Station Transfer results from Step 05 report
         bench_report_file = MODELS_DIR / "training_benchmark_report.json"
@@ -162,16 +159,32 @@ class ModelValidationEngine:
             bench_data = json.load(f)
         ml_transfer = bench_data.get("spatial_cross_station_transfer", {})
 
-        ml_nagpur = ml_transfer.get("train_chandrapur_midc_test_nagpur_central", {})
-        ml_chandrapur = ml_transfer.get("train_nagpur_central_test_chandrapur_midc", {})
+        stations = ["nagpur_central", "chandrapur_midc", "amravati_central", "akola_west"]
+        idw_results = {}
+        ml_holdout_results = {}
+        idw_maes = []
+        ml_maes = []
 
-        idw_mae_avg = (idw_res_nagpur["idw_mae"] + idw_res_chandrapur["idw_mae"]) / 2.0
-        ml_mae_avg  = (ml_nagpur.get("mae", 0.0) + ml_chandrapur.get("mae", 0.0)) / 2.0
-        error_reduction_pct = round(((idw_mae_avg - ml_mae_avg) / idw_mae_avg) * 100.0, 1)
+        for st in stations:
+            idw_res = self.idw_evaluator.evaluate_loso_idw(df_master, st)
+            idw_results[st] = idw_res
+            if "idw_mae" in idw_res:
+                idw_maes.append(idw_res["idw_mae"])
 
-        print(f"  • Traditional IDW Spatial Interpolation MAE : {idw_mae_avg:.2f} AQI points (R² = {idw_res_nagpur['idw_r2']:.4f})")
-        print(f"  • Virtual Spatiotemporal ML Model MAE       : {ml_mae_avg:.2f} AQI points (R² = {ml_nagpur.get('r2', 0.0):.4f})")
-        print(f"  • ERROR REDUCTION OVER TRADITIONAL IDW      : {error_reduction_pct}% IMPROVEMENT!")
+            ml_res = ml_transfer.get(f"holdout_{st}", {})
+            ml_holdout_results[st] = ml_res
+            if "mae" in ml_res:
+                ml_maes.append(ml_res["mae"])
+
+            print(f"  • Station {st:<18}: IDW MAE = {idw_res.get('idw_mae', 'N/A')} (R²={idw_res.get('idw_r2', 'N/A')}) | ML Holdout MAE = {ml_res.get('mae', 'N/A')} (R²={ml_res.get('r2', 'N/A')})")
+
+        idw_mae_avg = round(float(np.mean(idw_maes)), 2) if idw_maes else 0.0
+        ml_mae_avg  = round(float(np.mean(ml_maes)), 2) if ml_maes else 0.0
+        error_reduction_pct = round(((idw_mae_avg - ml_mae_avg) / idw_mae_avg) * 100.0, 1) if idw_mae_avg > 0 else 0.0
+
+        print(f"\n  • 4-Station Average IDW Spatial MAE : {idw_mae_avg:.2f} AQI points")
+        print(f"  • 4-Station Average ML Spatial MAE  : {ml_mae_avg:.2f} AQI points")
+        print(f"  • ERROR REDUCTION OVER TRADITIONAL IDW : {error_reduction_pct}% IMPROVEMENT!")
 
         # 7. Export Evaluation Artifacts
         df_eval = test_matrix[["timestamp", "station_id"]].copy()
@@ -183,8 +196,9 @@ class ModelValidationEngine:
         pred_csv = VALIDATION_DIR / "predictions_vs_actual.csv"
         df_eval.to_csv(pred_csv, index=False)
 
+        champ_name = bench_data.get("champion_model", "Champion")
         validation_summary = {
-            "model_evaluated": "XGBoost Champion",
+            "model_evaluated": f"{champ_name} Champion",
             "overall_test_metrics": {
                 "sample_count": len(y_test),
                 "r2": r2,
@@ -207,8 +221,8 @@ class ModelValidationEngine:
                 "idw_average_mae": idw_mae_avg,
                 "ml_average_mae": ml_mae_avg,
                 "error_reduction_percentage": error_reduction_pct,
-                "idw_nagpur_eval": idw_res_nagpur,
-                "idw_chandrapur_eval": idw_res_chandrapur
+                "station_idw_results": idw_results,
+                "station_ml_results": ml_holdout_results
             }
         }
 

@@ -52,18 +52,35 @@ class VirtualSensorPipeline:
         }
 
     def _determine_dominant_pollutant(self, row: Union[pd.Series, Dict[str, Any]]) -> str:
-        """Determines likely dominant pollutant from available chemical features."""
-        candidates = {}
-        for pol, key in [("PM2.5", "pm2_5"), ("PM10", "pm10"), ("NO2", "nitrogen_dioxide"),
-                         ("SO2", "sulphur_dioxide"), ("O3", "ozone"), ("CO", "carbon_monoxide")]:
+        """Determines likely dominant pollutant from available chemical features using CPCB standard weights."""
+        # National Ambient Air Quality Standards (NAAQS 24-hr / 8-hr standard levels in ug/m3)
+        THRESHOLDS = {
+            "PM2.5": 60.0,
+            "PM10": 100.0,
+            "NO2": 80.0,
+            "SO2": 80.0,
+            "O3": 100.0,
+            "CO": 2000.0  # 2 mg/m3 = 2000 ug/m3
+        }
+        KEY_MAP = {
+            "PM2.5": "pm2_5",
+            "PM10": "pm10",
+            "NO2": "nitrogen_dioxide",
+            "SO2": "sulphur_dioxide",
+            "O3": "ozone",
+            "CO": "carbon_monoxide"
+        }
+        ratios = {}
+        for pol, key in KEY_MAP.items():
             val = row.get(key) if isinstance(row, dict) else (row[key] if key in row else None)
-            if val is not None and not pd.isna(val):
-                candidates[pol] = val
+            if val is not None and not pd.isna(val) and float(val) > 0:
+                # Scaled severity ratio relative to CPCB standard limit
+                ratios[pol] = float(val) / THRESHOLDS[pol]
 
-        if candidates:
-            # Return pollutant with highest scaled concentration relative to threshold
-            return max(candidates, key=candidates.get)
+        if ratios:
+            return max(ratios, key=ratios.get)
         return "PM2.5"
+
 
     def predict_batch(self, X: pd.DataFrame) -> pd.DataFrame:
         """
@@ -117,8 +134,8 @@ class VirtualSensorPipeline:
         cpcb_info = self._get_cpcb_category(naqi_val)
         dominant_pol = self._determine_dominant_pollutant(feature_dict)
 
-        # Confidence bounds derived from Step 06 test MAE (±6.01)
-        mae_buffer = 6.01
+        # Confidence bounds derived from validated test MAE (default ±22.61 AQI)
+        mae_buffer = float(self.metadata.get("test_mae", 22.61))
         conf_min = round(max(0.0, naqi_val - mae_buffer), 1)
         conf_max = round(min(500.0, naqi_val + mae_buffer), 1)
 
@@ -133,6 +150,6 @@ class VirtualSensorPipeline:
                 "upper": conf_max,
                 "error_margin_mae": mae_buffer
             },
-            "model_architecture": self.metadata.get("model_name", "XGBoost Champion"),
+            "model_architecture": self.metadata.get("model_name", "LightGBM Champion"),
             "status": "success"
         }

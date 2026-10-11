@@ -1,113 +1,131 @@
 """
 Master Analytical Matrix Merger for Step 03.
-Executes:
-  1. Exact compound index join: [timestamp + station_id] on clean weather and air quality records.
-  2. Integration of authentic OpenStreetMap physical road network infrastructure.
-  3. Calculation of spatial proximity, Haversine distance matrix, and directional wind dispersion vectors.
-  4. Generation of the immutable Master Analytical Matrix array for machine learning.
+Joins clean datasets from Step 02 into a single training-ready matrix:
+  1. Weather + CAMS satellite features (inner join on timestamp + station_id)
+  2. Physical CPCB ground truth labels (spatiotemporal match)
+  3. OSM road infrastructure metrics
+  4. Spatial dispersion physics (Haversine, IDW, wind transport vectors)
 """
 
+import sys
 import json
 import pandas as pd
-import numpy as np
 from pathlib import Path
 
+# Ensure ML root is on path for direct script execution
+_ML_ROOT = Path(__file__).resolve().parent.parent
+if str(_ML_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ML_ROOT))
+
+from step_01_raw_ingestion.config import (
+    WEATHER_CLEAN_FILE,
+    CAMS_CLEAN_FILE,
+    CPCB_CLEAN_FILE,
+    OSM_ROAD_FILE,
+    MASTER_MATRIX_FILE,
+)
 try:
-    from .config import (
-        WEATHER_CLEAN_FILE,
-        AQ_CLEAN_FILE,
-        OSM_ROAD_FILE,
-        MASTER_MATRIX_FILE
-    )
     from .spatial_physics import SpatialDispersionPhysics
 except ImportError:
-    from config import (
-        WEATHER_CLEAN_FILE,
-        AQ_CLEAN_FILE,
-        OSM_ROAD_FILE,
-        MASTER_MATRIX_FILE
-    )
     from spatial_physics import SpatialDispersionPhysics
 
 
 class MasterMatrixMerger:
-    """Merges authentic meteorological, air quality, OpenStreetMap roads, and spatial physics vectors."""
+    """Merges weather, CAMS, CPCB ground truth, OSM roads, and spatial physics into one matrix."""
 
-    def __init__(self):
-        self.spatial_engine = SpatialDispersionPhysics()
-
-    def merge_datasets(
+    def merge(
         self,
         weather_path: Path = WEATHER_CLEAN_FILE,
-        aq_path: Path = AQ_CLEAN_FILE,
+        cams_path: Path = CAMS_CLEAN_FILE,
+        cpcb_path: Path = CPCB_CLEAN_FILE,
         osm_path: Path = OSM_ROAD_FILE,
-        output_path: Path = MASTER_MATRIX_FILE
+        output_path: Path = MASTER_MATRIX_FILE,
     ) -> pd.DataFrame:
         """
-        Merges weather, air quality, and spatial road matrices on [timestamp + station_id].
+        Executes the full spatiotemporal merge pipeline.
+
+        Steps:
+            1. Merge Weather + CAMS on [timestamp, station_id]
+            2. Join with CPCB ground truth labels on [timestamp, station_id]
+            3. Attach OSM road infrastructure per station
+            4. Compute spatial physics features
+            5. Export master analytical matrix
         """
-        print("=" * 75)
-        print("[STEP 03: FEATURE MERGE] Starting Master Analytical Matrix Construction")
-        print("=" * 75)
+        print("=" * 80)
+        print("STEP 03: MASTER ANALYTICAL MATRIX CONSTRUCTION")
+        print("=" * 80)
 
         # 1. Load clean datasets
-        print(f"[Loading] Clean Weather: {weather_path}")
+        print(f"[Load] Weather: {weather_path}")
         df_w = pd.read_csv(weather_path)
-        print(f"[Loading] Clean Air Quality: {aq_path}")
-        df_aq = pd.read_csv(aq_path)
-
-        # Ensure datetime format
         df_w["timestamp"] = pd.to_datetime(df_w["timestamp"])
-        df_aq["timestamp"] = pd.to_datetime(df_aq["timestamp"])
 
-        # 2. Compound Index Join on [timestamp, station_id]
-        print("[Join] Executing compound primary key join on [timestamp + station_id]...")
-        # Avoid duplicate coordinate / source columns during merge
-        aq_cols_to_use = [col for col in df_aq.columns if col not in ["latitude", "longitude", "data_source"]]
-        df_merged = pd.merge(
-            df_w,
-            df_aq[aq_cols_to_use],
-            on=["timestamp", "station_id"],
-            how="inner"
-        )
-        print(f"[Join] Merged shape: {df_merged.shape[0]:,} rows x {df_merged.shape[1]} columns")
+        print(f"[Load] CAMS: {cams_path}")
+        df_cams = pd.read_csv(cams_path)
+        df_cams["timestamp"] = pd.to_datetime(df_cams["timestamp"])
 
-        # 3. Attach Real OpenStreetMap Road Infrastructure
+        print(f"[Load] CPCB Ground Truth: {cpcb_path}")
+        df_cpcb = pd.read_csv(cpcb_path)
+        df_cpcb["timestamp"] = pd.to_datetime(df_cpcb["timestamp"])
+
+        # 2. Merge Weather + CAMS (avoid duplicate coordinate columns)
+        cams_cols = [c for c in df_cams.columns if c not in ["latitude", "longitude"]]
+        df_cams_clean = df_cams[cams_cols].copy()
+        if "india_naqi" in df_cams_clean.columns:
+            df_cams_clean.rename(columns={"india_naqi": "cams_satellite_naqi"}, inplace=True)
+
+        df_predictors = pd.merge(df_w, df_cams_clean, on=["timestamp", "station_id"], how="inner")
+        print(f"[Merge] Weather + CAMS: {df_predictors.shape[0]:,} rows x {df_predictors.shape[1]} cols")
+
+        # 3. Join with CPCB ground truth (physical analyzer target)
+        cpcb_sub = df_cpcb[["timestamp", "station_id", "cpcb_ground_naqi"]].copy()
+        cpcb_sub.rename(columns={"cpcb_ground_naqi": "india_naqi"}, inplace=True)
+
+        df_matched = pd.merge(df_predictors, cpcb_sub, on=["timestamp", "station_id"], how="inner")
+        print(f"[Match] CPCB Ground Truth: {df_matched.shape[0]:,} matched rows")
+
+        # 4. Attach OSM road infrastructure
+        print(f"[OSM] Loading: {osm_path}")
         if osm_path.exists():
-            print(f"[Enrichment] Attaching real OpenStreetMap road infrastructure from {osm_path}...")
-            with open(osm_path, "r") as f:
+            with open(osm_path, "r", encoding="utf-8") as f:
                 osm_data = json.load(f)
 
-            df_merged["osm_total_roads"] = df_merged["station_id"].map(lambda sid: osm_data.get(sid, {}).get("total_road_segments", 0))
-            df_merged["osm_major_highways"] = df_merged["station_id"].map(lambda sid: osm_data.get(sid, {}).get("major_highways_count", 0))
-            df_merged["osm_secondary_roads"] = df_merged["station_id"].map(lambda sid: osm_data.get(sid, {}).get("secondary_roads_count", 0))
-            df_merged["osm_road_density_km2"] = df_merged["station_id"].map(lambda sid: osm_data.get(sid, {}).get("road_density_per_sqkm", 0.0))
+            df_matched["osm_total_roads"] = df_matched["station_id"].map(
+                lambda sid: osm_data.get(sid, {}).get("total_road_segments", 0))
+            df_matched["osm_major_highways"] = df_matched["station_id"].map(
+                lambda sid: osm_data.get(sid, {}).get("major_highways_count", 0))
+            df_matched["osm_secondary_roads"] = df_matched["station_id"].map(
+                lambda sid: osm_data.get(sid, {}).get("secondary_roads_count", 0))
+            df_matched["osm_road_density_km2"] = df_matched["station_id"].map(
+                lambda sid: osm_data.get(sid, {}).get("road_density_per_sqkm", 0.0))
         else:
-            print("[Warning] OSM road network file not found. Setting defaults.")
-            df_merged["osm_road_density_km2"] = 100.0
+            print("[OSM] [WARN] Road network file not found -- setting defaults.")
+            df_matched["osm_total_roads"] = 0
+            df_matched["osm_major_highways"] = 0
+            df_matched["osm_secondary_roads"] = 0
+            df_matched["osm_road_density_km2"] = 0.0
 
-        # 4. Attach Spatial Proximity & Downwind Dispersion Physics
-        print("[Physics] Computing Haversine distances, azimuth bearings, and downwind transport vectors...")
-        df_master = self.spatial_engine.add_spatial_physics_features(df_merged)
+        # 5. Compute spatial physics features
+        print("[Physics] Computing Haversine distances, IDW weights, wind transport vectors...")
+        df_final = SpatialDispersionPhysics.add_spatial_physics_features(df_matched)
 
-        # 5. Sort chronologically and by station
-        df_master = df_master.sort_values(by=["timestamp", "station_id"]).reset_index(drop=True)
+        # Drop rows missing the target label
+        df_final = df_final.dropna(subset=["india_naqi"]).reset_index(drop=True)
+        df_final = df_final.sort_values(["timestamp", "station_id"]).reset_index(drop=True)
 
-        # 6. Save Master Matrix
+        # Save
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        df_master.to_csv(output_path, index=False)
+        df_final.to_csv(output_path, index=False)
 
-        print("\n" + "=" * 75)
-        print("[SUCCESS] Master Analytical Matrix Created Successfully!")
-        print(f"[FILE] Output File : {output_path}")
-        print(f"[DIMS] Final Shape : {df_master.shape[0]:,} rows x {df_master.shape[1]} feature columns")
-        print("=" * 75)
+        print("\n" + "=" * 80)
+        print(f"[STEP 03] [OK] Master Matrix: {df_final.shape[0]:,} rows x {df_final.shape[1]} cols")
+        print(f"  Output: {output_path}")
+        print(f"  Label:  'india_naqi' (Physical CPCB CAAQMS readings)")
+        print(f"\n{df_final.groupby('station_id')['india_naqi'].describe()}")
+        print("=" * 80)
 
-        return df_master
+        return df_final
 
 
 if __name__ == "__main__":
-    merger = MasterMatrixMerger()
-    master_df = merger.merge_datasets()
-    print("Master Matrix Snapshot:")
-    print(master_df[["timestamp", "station_id", "pm2_5", "temperature_2m", "wind_speed_10m", "osm_road_density_km2", "downwind_dispersion_nagpur_central"]].head(4))
+    MasterMatrixMerger().merge()

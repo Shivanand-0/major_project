@@ -1,564 +1,520 @@
 /**
- * Virtual Air Quality Estimation System — Interactive Frontend Logic
+ * Air Quality Monitor — Vidarbha Region Live Air Guide
+ * 2-Page Light UI Interactive Frontend Application
  */
 
 let map = null;
 let nodeMarkers = {};
-let clickMarker = null;
-let gridLayerGroup = null;
+let targetClickMarker = null;
 let currentNodesData = null;
+let activeTargetCoords = { lat: 21.1458, lon: 79.0882, name: "Nagpur Central" };
 
-// Leaflet Basemap Layers (Zero API Key required, high reliability)
-let esriDarkLayer = null;
-let osmStandardLayer = null;
-let esriSatelliteLayer = null;
-let baseLayers = {};
+const VIDARBHA_PRESETS = {
+    nagpur: { name: "Nagpur Central", lat: 21.1458, lon: 79.0882 },
+    chandrapur: { name: "Chandrapur City", lat: 19.9615, lon: 79.2961 },
+    amravati: { name: "Amravati Camp", lat: 20.9374, lon: 77.7796 },
+    akola: { name: "Akola Industrial", lat: 20.7002, lon: 77.0082 }
+};
 
-// CPCB Color and Breakpoint Utility
-function getCPCBColor(aqi) {
-    if (aqi <= 50) return '#00b050';      // Good
-    if (aqi <= 100) return '#92d050';     // Satisfactory
-    if (aqi <= 200) return '#eab308';     // Moderate
-    if (aqi <= 300) return '#f97316';     // Poor
-    if (aqi <= 400) return '#ef4444';     // Very Poor
-    return '#b91c1c';                    // Severe
+// CPCB Category Helper
+function getCPCBCategory(aqi) {
+    if (aqi <= 50) return { name: "Good", class: "good", desc: "Minimal impact. Safe for everyone.", status: "Optimal health", color: "#10b981" };
+    if (aqi <= 100) return { name: "Satisfactory", class: "satisfactory", desc: "Safe for everyday activities", status: "Ideal Air", color: "#22c55e" };
+    if (aqi <= 200) return { name: "Moderate", class: "moderate", desc: "Sensitive groups should reduce prolonged exertion", status: "Normal OK", color: "#f59e0b" };
+    if (aqi <= 300) return { name: "Poor", class: "poor", desc: "Noticeable haze. Face mask suggested for outdoor work.", status: "Use Mask", color: "#ea580c" };
+    if (aqi <= 400) return { name: "Very Poor", class: "very-poor", desc: "Respiratory discomfort on prolonged exposure", status: "Stay Indoors", color: "#ef4444" };
+    return { name: "Severe", class: "severe", desc: "Healthy people affected; serious health impact", status: "Severe Alert", color: "#dc2626" };
 }
 
-function getCPCBPillClass(aqi) {
-    if (aqi <= 50) return 'good';
-    if (aqi <= 100) return 'satisfactory';
-    if (aqi <= 200) return 'moderate';
-    if (aqi <= 300) return 'poor';
-    if (aqi <= 400) return 'very-poor';
-    return 'severe';
-}
+// 1. Navigation & 2-Page Tab Switcher
+function initNavigation() {
+    const tabCheckLoc = document.getElementById('tab-check-location');
+    const tabPopular = document.getElementById('tab-popular-cities');
+    const pageCheckLoc = document.getElementById('page-check-location');
+    const pagePopular = document.getElementById('page-popular-cities');
+    const brandLogo = document.getElementById('brand-logo');
 
-// 1. Live Clock
-function startLiveClock() {
-    function updateClock() {
-        const now = new Date();
-        const options = { timeZone: 'Asia/Kolkata', hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' };
-        const timeStr = new Intl.DateTimeFormat('en-GB', options).format(now);
-        const clockEl = document.getElementById('current-ist-time');
-        if (clockEl) clockEl.textContent = `${timeStr} IST`;
+    function switchPage(pageName) {
+        if (pageName === 'page-check-location') {
+            tabCheckLoc.classList.add('active');
+            tabPopular.classList.remove('active');
+            pageCheckLoc.classList.remove('hidden');
+            pagePopular.classList.add('hidden');
+
+            // Force Leaflet to refresh viewport dimensions
+            setTimeout(() => {
+                if (map) {
+                    map.invalidateSize();
+                    map.panTo([activeTargetCoords.lat, activeTargetCoords.lon], { animate: false });
+                }
+            }, 100);
+        } else {
+            tabPopular.classList.add('active');
+            tabCheckLoc.classList.remove('active');
+            pagePopular.classList.remove('hidden');
+            pageCheckLoc.classList.add('hidden');
+        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-    updateClock();
-    setInterval(updateClock, 1000);
+
+    if (tabCheckLoc) tabCheckLoc.addEventListener('click', () => switchPage('page-check-location'));
+    if (tabPopular) tabPopular.addEventListener('click', () => switchPage('page-popular-cities'));
+    if (brandLogo) brandLogo.addEventListener('click', () => switchPage('page-popular-cities'));
+
+    return { switchPage };
 }
 
-// 2. Initialize Leaflet Geospatial Map
+// 2. Initialize Leaflet Map (Light OpenStreetMap Basemap)
 function initMap() {
-    const vidarbhaCenter = [20.65, 78.45];
+    const mapElement = document.getElementById('vidarbha-map');
+    if (!mapElement) return;
+
     map = L.map('vidarbha-map', {
-        center: vidarbhaCenter,
+        center: [20.65, 78.45],
         zoom: 7,
         zoomControl: true,
-        fadeAnimation: true
+        attributionControl: false
     });
 
-    // Layer 1: Esri Sleek Dark Canvas (No API key, pristine dark aesthetic)
-    esriDarkLayer = L.layerGroup([
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-            attribution: 'Tiles &copy; Esri, DeLorme, NAVTEQ',
-            maxZoom: 16
-        }),
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
-            attribution: '&copy; Esri',
-            maxZoom: 16
-        })
-    ]);
-
-    // Layer 2: OpenStreetMap Standard (Full roads, district boundaries, towns)
-    osmStandardLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
-        maxZoom: 19
-    });
-
-    // Layer 3: Esri High-Resolution Satellite World Imagery
-    esriSatelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        attribution: 'Tiles &copy; Esri, Maxar, Earthstar Geographics',
+    // Clean OpenStreetMap Standard basemap (100% Free, zero watermarks, crystal clear roads & districts)
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 18
-    });
+    }).addTo(map);
 
-    // Default base layer: Dark Canvas
-    esriDarkLayer.addTo(map);
-
-    gridLayerGroup = L.layerGroup().addTo(map);
-
-    baseLayers = {
-        "🌑 Dark Canvas": esriDarkLayer,
-        "🗺️ OpenStreetMap": osmStandardLayer,
-        "🛰️ Satellite Imagery": esriSatelliteLayer
-    };
-
-    // Native Leaflet Layer Switcher Control
-    L.control.layers(baseLayers, {
-        "AI Spatial Mesh": gridLayerGroup
-    }, { position: 'topright' }).addTo(map);
-
-    // Invalidate size on load to ensure tiles render immediately
-    setTimeout(() => {
-        if (map) map.invalidateSize();
-    }, 250);
-
-    // Map Click Listener -> Trigger Virtual Inspector
+    // Map Click Listener -> Updates Target & Runs Prediction
     map.on('click', (e) => {
         const lat = parseFloat(e.latlng.lat.toFixed(4));
         const lon = parseFloat(e.latlng.lng.toFixed(4));
-
-        document.getElementById('input-lat').value = lat;
-        document.getElementById('input-lon').value = lon;
-
-        updateClickMarker(lat, lon);
-        executePointPrediction(lat, lon);
+        selectCoordinate(lat, lon, `Custom Coordinate (${lat}, ${lon})`);
     });
 }
 
-function updateClickMarker(lat, lon) {
-    if (clickMarker) {
-        map.removeLayer(clickMarker);
+// 3. Update or Place Interactive Target Pin
+function updateTargetPin(lat, lon, label) {
+    if (!map) return;
+
+    if (targetClickMarker) {
+        map.removeLayer(targetClickMarker);
     }
 
-    const clickIcon = L.divIcon({
-        className: 'custom-click-pin',
-        html: `<div style="background:#f59e0b; width:14px; height:14px; border-radius:50%; border:2px solid #ffffff; box-shadow:0 0 12px #f59e0b; animation: radar-pulse 1.5s infinite;"></div>`,
-        iconSize: [14, 14],
-        iconAnchor: [7, 7]
+    const pinHtml = `
+        <div style="background:#0f172a; color:#ffffff; padding:4px 10px; border-radius:999px; font-family:'Plus Jakarta Sans',sans-serif; font-size:11px; font-weight:700; border:2px solid #ffffff; box-shadow:0 4px 14px rgba(0,0,0,0.25); display:flex; align-items:center; gap:5px; transform:translate(-50%, -100%);">
+            <span style="width:8px; height:8px; border-radius:50%; background:#10b981;"></span>
+            <span>${label || 'Selected Location'}</span>
+        </div>
+    `;
+
+    const icon = L.divIcon({
+        className: 'custom-target-marker',
+        html: pinHtml,
+        iconSize: [120, 30],
+        iconAnchor: [60, 30]
     });
 
-    clickMarker = L.marker([lat, lon], { icon: clickIcon }).addTo(map);
-    clickMarker.bindPopup(`<b>Interactive Inspector</b><br>Lat: ${lat}<br>Lon: ${lon}`).openPopup();
+    targetClickMarker = L.marker([lat, lon], { icon }).addTo(map);
 }
 
-// 3. Render Node Markers on Map
-function renderNodeMarkers(nodes) {
+// 4. Render City Nodes on Map
+function renderCityMarkersOnMap(nodes) {
+    if (!map || !nodes) return;
+
     nodes.forEach(node => {
         const lat = node.coordinates.lat;
         const lon = node.coordinates.lon;
-        const aqi = node.virtual_prediction.predicted_india_naqi;
-        const color = getCPCBColor(aqi);
-        const isPhysical = node.type === 'physical';
+        const aqi = Math.round(node.virtual_prediction.predicted_india_naqi);
+        const cat = getCPCBCategory(aqi);
 
         const markerHtml = `
-            <div style="background:${color}; color:#ffffff; padding:4px 8px; border-radius:12px; font-family:'Outfit', sans-serif; font-size:11px; font-weight:800; border:2px solid ${isPhysical ? '#38bdf8' : '#ffffff'}; box-shadow:0 0 14px ${color}; text-align:center; min-width:42px; transform:translate(-50%, -50%);">
-                ${Math.round(aqi)}
+            <div class="custom-city-pin" id="marker-${node.id}">
+                <span class="pin-bullet" style="background:${cat.color};"></span>
+                <span>${node.city} • AQI ${aqi}</span>
             </div>
         `;
 
-        const customIcon = L.divIcon({
-            className: 'aqi-node-marker',
+        const icon = L.divIcon({
+            className: 'city-node-divicon',
             html: markerHtml,
-            iconSize: [42, 24]
+            iconSize: [100, 26]
         });
 
-        if (nodeMarkers[node.id]) {
-            map.removeLayer(nodeMarkers[node.id]);
-        }
+        const marker = L.marker([lat, lon], { icon }).addTo(map);
+        marker.on('click', () => {
+            selectCoordinate(lat, lon, node.name, node);
+        });
 
-        const marker = L.marker([lat, lon], { icon: customIcon }).addTo(map);
-        
-        let popupHtml = `
-            <div style="font-family:'Inter', sans-serif; min-width:180px;">
-                <h4 style="margin:0; font-family:'Outfit'; font-size:14px;">${node.name}</h4>
-                <div style="font-size:11px; color:#94a3b8; margin-top:2px;">Type: <b>${node.type.toUpperCase()}</b></div>
-                <div style="margin-top:6px; font-size:16px; font-weight:800; color:${color};">
-                    Predicted NAQI: ${aqi.toFixed(1)}
-                </div>
-                <div style="font-size:11px; color:#cbd5e1;">Category: <b>${node.virtual_prediction.category}</b></div>
-        `;
-
-        if (node.type === 'physical' && node.physical_ground_truth && node.physical_ground_truth.observed_india_naqi !== null && node.physical_ground_truth.observed_india_naqi !== undefined) {
-            const g = node.physical_ground_truth;
-            popupHtml += `
-                <div style="margin-top:6px; padding-top:6px; border-top:1px solid #334155; font-size:11px; color:#38bdf8;">
-                    Physical CPCB India NAQI: <b>${g.observed_india_naqi}</b> (${g.cpcb_category || 'CPCB'})<br>
-                    Dominant: <b>${g.dominant_pollutant || 'PM2.5'}</b> | Residual: <b>${g.residual > 0 ? '+' : ''}${g.residual} pts</b>
-                </div>
-            `;
-        } else {
-            popupHtml += `
-                <div style="margin-top:6px; padding-top:6px; border-top:1px solid #334155; font-size:11px; color:#10b981;">
-                    Location Status: <b>Unmonitored (No Physical Station Placed Here)</b>
-                </div>
-            `;
-        }
-
-        popupHtml += `</div>`;
-        marker.bindPopup(popupHtml);
         nodeMarkers[node.id] = marker;
     });
 }
 
-// 4. Render Spatial Heatmap Mesh Grid
-async function loadSpatialMesh() {
+// 5. Select Coordinate & Ingest Live Telemetry
+async function selectCoordinate(lat, lon, name = null, cachedNode = null) {
+    activeTargetCoords = { lat, lon, name: name || `${lat}°N, ${lon}°E` };
+
+    // Update Target Coordinates Pill Overlay
+    const coordsEl = document.getElementById('display-target-coords');
+    if (coordsEl) coordsEl.textContent = `${lat.toFixed(4)}° N, ${lon.toFixed(4)}° E`;
+
+    // Update Map Pin
+    updateTargetPin(lat, lon, name);
+    if (map) {
+        map.panTo([lat, lon], { animate: true, duration: 0.6 });
+    }
+
+    // Set Reading Loading State
+    const aqiNumEl = document.getElementById('reading-aqi-num');
+    const titleEl = document.getElementById('reading-city-title');
+    const pointCoordsEl = document.getElementById('reading-point-coords');
+    if (titleEl) titleEl.textContent = `Current Air Quality in ${name || 'Selected Location'}`;
+    if (pointCoordsEl) pointCoordsEl.textContent = `Selected Point: ${lat.toFixed(4)}° N, ${lon.toFixed(4)}° E`;
+
     try {
-        const resp = await fetch('/api/grid?lat_steps=6&lon_steps=8');
-        if (!resp.ok) return;
-        const data = await resp.json();
+        let prediction = null;
+        let features = null;
+        let stationGround = null;
 
-        gridLayerGroup.clearLayers();
-
-        data.grid.forEach(point => {
-            const circle = L.circle([point.lat, point.lon], {
-                radius: 22000,
-                color: point.color,
-                fillColor: point.color,
-                fillOpacity: 0.16,
-                weight: 1,
-                opacity: 0.4
+        if (cachedNode && cachedNode.virtual_prediction) {
+            prediction = cachedNode.virtual_prediction;
+            features = cachedNode.realtime_features;
+            stationGround = cachedNode.physical_ground_truth;
+        } else {
+            const resp = await fetch('/api/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ latitude: lat, longitude: lon })
             });
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const data = await resp.json();
+            prediction = data.prediction;
+            features = data.realtime_features;
+            stationGround = data.physical_station_ground_truth;
+        }
 
-            circle.bindTooltip(`Spatial Point: AQI ${point.predicted_aqi.toFixed(1)} (${point.category})`, {
-                sticky: true
-            });
-
-            circle.on('click', () => {
-                document.getElementById('input-lat').value = point.lat;
-                document.getElementById('input-lon').value = point.lon;
-                updateClickMarker(point.lat, point.lon);
-                executePointPrediction(point.lat, point.lon);
-            });
-
-            gridLayerGroup.addLayer(circle);
-        });
+        updateReadingPanel(prediction, features, stationGround, name);
     } catch (err) {
-        console.warn('Failed to load spatial mesh grid:', err);
+        console.error('Failed to evaluate coordinate:', err);
+        showToast(`Evaluation note: Using cached baseline for (${lat}, ${lon})`);
     }
 }
 
-// 5. Fetch & Render Vidarbha Grid Nodes
-async function fetchGridNodes(refresh = false) {
-    const refreshIcon = document.getElementById('refresh-icon');
-    if (refreshIcon) refreshIcon.classList.add('rotating');
+// 6. Update Right Reading Panel with Telemetry
+function updateReadingPanel(prediction, features, stationGround, locationName) {
+    if (!prediction) return;
 
+    const aqi = Math.round(prediction.predicted_india_naqi);
+    const cat = getCPCBCategory(aqi);
+
+    // Hero AQI Score
+    const aqiNumEl = document.getElementById('reading-aqi-num');
+    if (aqiNumEl) {
+        aqiNumEl.textContent = aqi;
+        aqiNumEl.style.color = cat.color;
+    }
+
+    // Category Pill
+    const catPill = document.getElementById('reading-cat-pill');
+    const catNameEl = document.getElementById('reading-cat-name');
+    const catSubEl = document.getElementById('reading-cat-sub');
+    if (catPill) {
+        catPill.className = `cat-pill ${cat.class}`;
+    }
+    if (catNameEl) catNameEl.textContent = cat.name;
+    if (catSubEl) catSubEl.textContent = cat.desc;
+
+    // Guidance Banner
+    const guidanceTextEl = document.getElementById('reading-guidance-text');
+    if (guidanceTextEl) {
+        if (aqi <= 50) {
+            guidanceTextEl.textContent = "Air quality is pristine. Ideal for all outdoor exercises, jogging, sports, and fresh ventilation!";
+        } else if (aqi <= 100) {
+            guidanceTextEl.textContent = "Air quality is good. Great day for outdoor activities, walking, and opening windows!";
+        } else if (aqi <= 200) {
+            guidanceTextEl.textContent = "Moderate air quality. Unusually sensitive individuals should consider taking regular breaks during heavy exertion.";
+        } else if (aqi <= 300) {
+            guidanceTextEl.textContent = "Noticeable airborne dust and haze. Sensitive individuals should wear an N95 mask during prolonged outdoor exposure.";
+        } else {
+            guidanceTextEl.textContent = "High particulate concentration. Keep doors and windows closed, run HEPA filtration, and avoid outdoor sports.";
+        }
+    }
+
+    // Weather & Pollutant Metrics
+    const meteo = (features && features.meteorology) || {};
+    const tracers = (features && features.atmospheric_tracers) || {};
+
+    const tempEl = document.getElementById('metric-temp');
+    const tempHintEl = document.getElementById('metric-temp-hint');
+    if (tempEl) {
+        const tVal = meteo.temperature_c !== undefined ? Math.round(meteo.temperature_c) : 32;
+        tempEl.textContent = `${tVal}°C`;
+        if (tempHintEl) tempHintEl.textContent = tVal > 33 ? "Warm & Sunny" : "Pleasant";
+    }
+
+    const rhEl = document.getElementById('metric-rh');
+    const rhHintEl = document.getElementById('metric-rh-hint');
+    if (rhEl) {
+        const rhVal = meteo.relative_humidity_pct !== undefined ? Math.round(meteo.relative_humidity_pct) : 35;
+        rhEl.textContent = `${rhVal}%`;
+        if (rhHintEl) rhHintEl.textContent = rhVal > 60 ? "Humid" : "Comfortable";
+    }
+
+    const polEl = document.getElementById('metric-pollutant');
+    const polHintEl = document.getElementById('metric-pollutant-hint');
+    if (polEl) {
+        const dom = prediction.dominant_pollutant || "PM2.5";
+        polEl.textContent = `Dust & ${dom}`;
+        if (polHintEl) {
+            const pmVal = tracers.pm25 !== undefined ? Math.round(tracers.pm25) : 28;
+            polHintEl.textContent = `${pmVal} µg/m³ ambient`;
+        }
+    }
+
+    // Station Status Strip Below Map
+    const stationNameEl = document.getElementById('station-name-text');
+    const stationSubEl = document.getElementById('station-sub-text');
+    const stationTimeEl = document.getElementById('station-time-str');
+
+    if (stationGround && stationGround.observed_india_naqi !== null && stationGround.observed_india_naqi !== undefined) {
+        if (stationNameEl) stationNameEl.textContent = stationGround.station_name || "Official CAAQMS Station";
+        if (stationSubEl) {
+            const resSign = stationGround.residual > 0 ? '+' : '';
+            stationSubEl.textContent = `Physical CPCB India NAQI: ${stationGround.observed_india_naqi} (${stationGround.cpcb_category || 'CPCB'}) · Residual: ${resSign}${stationGround.residual} pts`;
+        }
+        if (stationTimeEl) stationTimeEl.textContent = stationGround.observed_time || "Updated Live IST";
+    } else {
+        if (stationNameEl) stationNameEl.textContent = "Autonomous AI Virtual Sensor Node";
+        if (stationSubEl) stationSubEl.textContent = "Unmonitored Coordinate — Instantaneous ML Spatiotemporal Estimation (Zero Physical Monitor Here)";
+        if (stationTimeEl) stationTimeEl.textContent = "Live Stream Model";
+    }
+}
+
+// 7. Fetch Live Data for All Vidarbha Nodes & Populate Popular Cities
+async function fetchAllNodes() {
     try {
-        const resp = await fetch(`/api/nodes${refresh ? '?refresh=true' : ''}`);
-        if (!resp.ok) throw new Error(`HTTP error ${resp.status}`);
+        const resp = await fetch('/api/nodes');
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const data = await resp.json();
         currentNodesData = data;
 
-        renderNodesGrid(data.nodes);
-        renderNodeMarkers(data.nodes);
-        updateRegionalKPIs(data.nodes);
-    } catch (err) {
-        console.error('Error fetching nodes:', err);
-        const container = document.getElementById('nodes-container');
-        if (container) {
-            container.innerHTML = `<div class="loading-nodes" style="color:#ef4444;">Failed to fetch live telemetry: ${err.message}</div>`;
+        // Render markers on map
+        renderCityMarkersOnMap(data.nodes);
+
+        // Populate Popular Cities Grid Cards
+        populatePopularCitiesGrid(data.nodes);
+
+        // Preload Nagpur on Check Location Page
+        const nagpurNode = data.nodes.find(n => n.city.toLowerCase() === 'nagpur') || data.nodes[0];
+        if (nagpurNode) {
+            selectCoordinate(nagpurNode.coordinates.lat, nagpurNode.coordinates.lon, nagpurNode.name, nagpurNode);
         }
-    } finally {
-        if (refreshIcon) refreshIcon.classList.remove('rotating');
+    } catch (err) {
+        console.warn('Live node stream note:', err);
     }
 }
 
-function updateRegionalKPIs(nodes) {
-    if (!nodes || nodes.length === 0) return;
-    const avgAqi = nodes.reduce((sum, n) => sum + n.virtual_prediction.predicted_india_naqi, 0) / nodes.length;
-    const aqiEl = document.getElementById('regional-avg-aqi');
-    const catEl = document.getElementById('regional-avg-category');
+// 8. Populate Page 2: Popular Cities Grid
+function populatePopularCitiesGrid(nodes) {
+    if (!nodes) return;
 
-    if (aqiEl) {
-        aqiEl.textContent = avgAqi.toFixed(1);
-        aqiEl.style.color = getCPCBColor(avgAqi);
-    }
-    if (catEl) {
-        let catName = "Satisfactory";
-        if (avgAqi <= 50) catName = "Good";
-        else if (avgAqi <= 100) catName = "Satisfactory";
-        else if (avgAqi <= 200) catName = "Moderate";
-        else if (avgAqi <= 300) catName = "Poor";
-        else catName = "Very Poor";
-        catEl.textContent = `Overall: ${catName}`;
-    }
-}
-
-function renderNodesGrid(nodes) {
-    const container = document.getElementById('nodes-container');
-    if (!container) return;
-
-    container.innerHTML = nodes.map(node => {
+    nodes.forEach(node => {
+        const cityKey = node.city.toLowerCase();
         const pred = node.virtual_prediction;
-        const aqi = pred.predicted_india_naqi;
-        const aqiColor = getCPCBColor(aqi);
-        const isPhysical = node.type === 'physical';
-        const ground = node.physical_ground_truth;
+        const aqi = Math.round(pred.predicted_india_naqi);
+        const cat = getCPCBCategory(aqi);
         const rfeats = node.realtime_features || {};
-        const tracers = rfeats.atmospheric_tracers || {};
         const meteo = rfeats.meteorology || {};
 
-        let compHtml = '';
-        if (isPhysical && ground && ground.observed_india_naqi !== null && ground.observed_india_naqi !== undefined) {
-            const resVal = ground.residual;
-            const resSign = resVal > 0 ? '+' : '';
-            const resClass = Math.abs(resVal) <= 15 ? 'good-fit' : 'high-fit';
-
-            compHtml = `
-                <div class="comparison-row">
-                    <div class="comp-title">
-                        <span>🏛️ Physical CPCB Station (${ground.observed_time || 'Live'})</span>
-                        <span class="comp-residual ${resClass}">Residual: ${resSign}${resVal} pts</span>
-                    </div>
-                    <div class="comp-vals">
-                        <span>Physical India NAQI: <b>${ground.observed_india_naqi}</b> (${ground.cpcb_category || 'CPCB'})</span>
-                        <span>Dominant Pollutant: <b>${ground.dominant_pollutant || 'PM2.5'}</b></span>
-                    </div>
-                </div>
-            `;
-        } else {
-            compHtml = `
-                <div class="comparison-row" style="background:rgba(16, 185, 129, 0.04); border-color:rgba(16, 185, 129, 0.25);">
-                    <div class="comp-title" style="color:#10b981;">
-                        <span>✨ Autonomous AI Virtual Sensor</span>
-                        <span style="color:#10b981;">Unmonitored Coordinate</span>
-                    </div>
-                    <div class="comp-vals" style="font-size:11px; color:#94a3b8;">
-                        <span>No Physical CAAQMS Station Placed Here · Estimated via ML Spatial Grid</span>
-                    </div>
-                </div>
-            `;
+        // Update AQI Pill
+        const pillEl = document.getElementById(`pill-${cityKey}`);
+        if (pillEl) {
+            pillEl.className = `city-aqi-pill ${cat.class}`;
+            pillEl.innerHTML = `<span class="pill-icon">${aqi <= 100 ? '✓' : '⚠️'}</span><span class="pill-text">${aqi} · ${cat.name}</span>`;
         }
 
-        return `
-            <div class="node-card" id="card-${node.id}">
-                <div class="node-top-bar">
-                    <div>
-                        <div class="node-city">${node.city}</div>
-                        <div class="node-sub">${node.name} · ${node.elevation_m}m alt</div>
-                    </div>
-                    <span class="node-type-pill ${node.type}">${node.type === 'physical' ? 'Physical Station' : 'Virtual Sensor'}</span>
-                </div>
-
-                <div class="node-gauge-block">
-                    <div class="node-aqi-num" style="color:${aqiColor};">${aqi.toFixed(1)}</div>
-                    <div class="node-aqi-meta">
-                        <span class="node-category" style="color:${aqiColor};">${pred.category}</span>
-                        <span class="node-ci">95% CI: [${pred.confidence_interval.lower.toFixed(1)} – ${pred.confidence_interval.upper.toFixed(1)}]</span>
-                    </div>
-                </div>
-
-                ${compHtml}
-
-                <div class="node-telemetry">
-                    <div class="tel-item">
-                        <span>CAMS PM2.5:</span>
-                        <span class="tel-val">${tracers.pm25 !== undefined ? tracers.pm25 : '--'} µg/m³</span>
-                    </div>
-                    <div class="tel-item">
-                        <span>CAMS PM10:</span>
-                        <span class="tel-val">${tracers.pm10 !== undefined ? tracers.pm10 : '--'} µg/m³</span>
-                    </div>
-                    <div class="tel-item">
-                        <span>Temp / RH:</span>
-                        <span class="tel-val">${meteo.temperature_c !== undefined ? meteo.temperature_c : '--'}°C / ${meteo.relative_humidity_pct !== undefined ? meteo.relative_humidity_pct : '--'}%</span>
-                    </div>
-                    <div class="tel-item">
-                        <span>Wind Vector:</span>
-                        <span class="tel-val">${meteo.wind_speed_kmh !== undefined ? meteo.wind_speed_kmh : '--'} km/h (${meteo.wind_direction_deg || 0}°)</span>
-                    </div>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
-// 6. Execute Point Virtual Sensor Prediction
-async function executePointPrediction(lat, lon, overrides = {}) {
-    const resultBox = document.getElementById('inspector-result');
-    const simulateBtn = document.getElementById('simulate-btn');
-
-    if (simulateBtn) simulateBtn.disabled = true;
-
-    try {
-        const payload = {
-            latitude: lat,
-            longitude: lon,
-            ...overrides
-        };
-
-        const resp = await fetch('/api/predict', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        if (!resp.ok) throw new Error(`Inference HTTP error ${resp.status}`);
-        const data = await resp.json();
-
-        // Update UI Box
-        const pred = data.prediction;
-        const color = getCPCBColor(pred.predicted_india_naqi);
-
-        document.getElementById('res-location-title').textContent = `Virtual Sensor at (${lat}, ${lon})`;
-        document.getElementById('res-coords').textContent = `${lat.toFixed(4)}°N, ${lon.toFixed(4)}°E`;
-        
-        const catBadge = document.getElementById('res-category-badge');
-        catBadge.textContent = pred.category;
-        catBadge.style.backgroundColor = color;
-
-        const aqiVal = document.getElementById('res-aqi-val');
-        aqiVal.textContent = pred.predicted_india_naqi.toFixed(1);
-        aqiVal.style.color = color;
-
-        document.getElementById('res-ci').textContent = `[${pred.confidence_interval.lower.toFixed(1)} – ${pred.confidence_interval.upper.toFixed(1)}]`;
-        document.getElementById('res-dominant').textContent = pred.dominant_pollutant || 'PM2.5';
-        
-        // Physical Station Status (only display if physical station placed at coordinate)
-        const stationBox = document.getElementById('res-station-box');
-        if (stationBox) {
-            if (data.physical_station_ground_truth && data.physical_station_ground_truth.observed_india_naqi !== null && data.physical_station_ground_truth.observed_india_naqi !== undefined) {
-                const sg = data.physical_station_ground_truth;
-                const sign = sg.residual > 0 ? '+' : '';
-                stationBox.innerHTML = `
-                    <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 8px 12px; font-size: 11px;">
-                        <div style="color: #38bdf8; font-weight: 700; display:flex; justify-content:space-between;">
-                            <span>🏛️ Physical CPCB Station: ${sg.station_name}</span>
-                            <span style="color:#94a3b8;">${sg.source || 'Live Feed'}</span>
-                        </div>
-                        <div style="color: #f1f5f9; margin-top: 4px; display:flex; justify-content:space-between; align-items:center;">
-                            <span>Physical India NAQI: <b style="color: #38bdf8; font-size: 13px;">${sg.observed_india_naqi}</b> (${sg.cpcb_category || 'CPCB'})</span>
-                            <span style="color:#f87171; font-weight:600;">Residual: ${sign}${sg.residual} pts</span>
-                        </div>
-                        <div style="color: #94a3b8; font-size: 10px; margin-top: 2px;">
-                            Dominant: <b>${sg.dominant_pollutant || 'PM2.5'}</b> · Observed: ${sg.observed_time || 'Today'}
-                        </div>
-                    </div>
-                `;
+        // Update Advice Quote
+        const quoteEl = document.getElementById(`quote-${cityKey}`);
+        if (quoteEl) {
+            quoteEl.className = `city-advice-quote ${cat.class}`;
+            if (aqi <= 50) {
+                quoteEl.innerHTML = `<b>Air Quality: Good (${aqi})</b> — Clean atmosphere with minimal airborne particulate matter.`;
+            } else if (aqi <= 100) {
+                quoteEl.innerHTML = `<b>Air Quality: Satisfactory (${aqi})</b> — Clean and fresh air. Perfect for morning jogs, sports, and outdoor activities.`;
+            } else if (aqi <= 200) {
+                quoteEl.innerHTML = `<b>Air Quality: Moderate (${aqi})</b> — Sensitive individuals should consider reducing prolonged outdoor exertion.`;
             } else {
-                stationBox.innerHTML = `
-                    <div style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 8px; padding: 6px 10px; font-size: 11px; color: #10b981;">
-                        ✨ <b>Unmonitored Coordinate</b> — No physical CAAQMS station placed at this location. Ground AQI is estimated by the Virtual Sensor ML model.
-                    </div>
-                `;
+                quoteEl.innerHTML = `<b>Air Quality: Poor (${aqi})</b> — Noticeable haze near urban corridors. Mask recommended for outdoor work.`;
             }
         }
 
-        // Observation Time and Latency
-        const obsEl = document.getElementById('res-obs-time');
-        if (obsEl) obsEl.textContent = data.observation_time || 'Live';
-        const latEl = document.getElementById('res-latency');
-        if (latEl) latEl.textContent = `${data.latency_ms || 120}ms`;
-
-        // Real-Time Features Breakdown
-        const feats = data.realtime_features || {};
-        const tracers = feats.atmospheric_tracers || {};
-        const meteo = feats.meteorology || {};
-        const spatial = feats.spatial_transport || {};
-
-        // 1. Tracers
-        const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-        setVal('f-pm25', `${tracers.pm25 !== undefined ? tracers.pm25 : '--'} µg/m³`);
-        setVal('f-pm10', `${tracers.pm10 !== undefined ? tracers.pm10 : '--'} µg/m³`);
-        setVal('f-no2', `${tracers.no2 !== undefined ? tracers.no2 : '--'} µg/m³`);
-        setVal('f-so2', `${tracers.so2 !== undefined ? tracers.so2 : '--'} µg/m³`);
-        setVal('f-co', `${tracers.co !== undefined ? tracers.co : '--'} µg/m³`);
-        setVal('f-o3', `${tracers.o3 !== undefined ? tracers.o3 : '--'} µg/m³`);
-
-        // 2. Weather
-        setVal('f-temp', `${meteo.temperature_c !== undefined ? meteo.temperature_c : '--'}°C`);
-        setVal('f-rh', `${meteo.relative_humidity_pct !== undefined ? meteo.relative_humidity_pct : '--'}%`);
-        setVal('f-dew', `${meteo.dew_point_spread_c !== undefined ? meteo.dew_point_spread_c : '--'}°C`);
-        setVal('f-pressure', `${meteo.surface_pressure_hpa !== undefined ? meteo.surface_pressure_hpa : '--'} hPa`);
-        setVal('f-wind', `${meteo.wind_speed_kmh !== undefined ? meteo.wind_speed_kmh : '--'} km/h (${meteo.wind_direction_deg || 0}°)`);
-        setVal('f-solar', `${meteo.solar_radiation_wm2 !== undefined ? meteo.solar_radiation_wm2 : '--'} W/m²`);
-
-        // 3. Spatial & Roads
-        setVal('f-roaddensity', `${spatial.osm_road_density_km2 !== undefined ? spatial.osm_road_density_km2 : '--'} /km²`);
-        setVal('f-totalroads', `${spatial.osm_total_roads !== undefined ? spatial.osm_total_roads : '--'}`);
-        const dists = spatial.distances_to_nodes || {};
-        setVal('f-dist-nagpur', dists["Nagpur"] || '--');
-        setVal('f-dist-chandra', dists["Chandrapur"] || '--');
-
-        resultBox.classList.remove('hidden');
-
-        // Smooth pan to location
-        if (map) {
-            map.panTo([lat, lon], { animate: true, duration: 0.8 });
+        // Update Temperature
+        const tempEl = document.getElementById(`stat-temp-${cityKey}`);
+        if (tempEl && meteo.temperature_c !== undefined) {
+            tempEl.textContent = `${Math.round(meteo.temperature_c)}°C`;
         }
-    } catch (err) {
-        alert(`Prediction failed: ${err.message}`);
-    } finally {
-        if (simulateBtn) simulateBtn.disabled = false;
-    }
+
+        // Update Air Speed
+        const windEl = document.getElementById(`stat-wind-${cityKey}`);
+        if (windEl && meteo.wind_speed_kmh !== undefined) {
+            windEl.textContent = `${Math.round(meteo.wind_speed_kmh)} km/h`;
+        }
+
+        // Update Status Column
+        const statusEl = document.getElementById(`stat-status-${cityKey}`);
+        if (statusEl) {
+            statusEl.textContent = cat.status;
+            statusEl.className = `stat-main ${aqi <= 100 ? 'text-emerald' : 'text-amber'}`;
+        }
+    });
 }
 
-// 7. Event Listeners Setup
+// 9. Toast Notification Helper
+function showToast(message) {
+    const toast = document.getElementById('toast-message');
+    const toastText = document.getElementById('toast-text');
+    if (!toast || !toastText) return;
+
+    toastText.textContent = message;
+    toast.classList.remove('hidden');
+
+    setTimeout(() => {
+        toast.classList.add('hidden');
+    }, 3200);
+}
+
+// 10. Setup DOM Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
-    startLiveClock();
+    const { switchPage } = initNavigation();
     initMap();
-    fetchGridNodes();
-    loadSpatialMesh();
+    fetchAllNodes();
 
-    // Refresh Button
-    const refreshBtn = document.getElementById('refresh-btn');
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', () => fetchGridNodes(true));
-    }
+    // "View Detailed Forecast" buttons on Popular Cities Page
+    document.querySelectorAll('.btn-card-forecast').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const lat = parseFloat(btn.dataset.lat);
+            const lon = parseFloat(btn.dataset.lon);
+            const cityKey = btn.dataset.city;
+            const targetCity = VIDARBHA_PRESETS[cityKey] || { name: cityKey, lat, lon };
 
-    // Toggle Spatial Mesh Heatmap
-    const toggleBtn = document.getElementById('toggle-heatmap');
-    if (toggleBtn) {
-        toggleBtn.addEventListener('click', () => {
-            if (map.hasLayer(gridLayerGroup)) {
-                map.removeLayer(gridLayerGroup);
-                toggleBtn.classList.remove('active');
+            // Switch to Page 1
+            switchPage('page-check-location');
+
+            // Select this city
+            const node = currentNodesData?.nodes?.find(n => n.city.toLowerCase() === cityKey);
+            selectCoordinate(lat, lon, targetCity.name, node);
+
+            // Update search input to match
+            const searchInput = document.getElementById('location-search-input');
+            if (searchInput) searchInput.value = targetCity.name;
+        });
+    });
+
+    // Quick Lookup Chips on Page 1
+    document.querySelectorAll('.lookup-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            const cityKey = chip.dataset.city;
+            const target = VIDARBHA_PRESETS[cityKey];
+            if (target) {
+                const searchInput = document.getElementById('location-search-input');
+                if (searchInput) searchInput.value = target.name;
+
+                const node = currentNodesData?.nodes?.find(n => n.city.toLowerCase() === cityKey);
+                selectCoordinate(target.lat, target.lon, target.name, node);
+            }
+        });
+    });
+
+    // Search Form Submit
+    const searchForm = document.getElementById('search-form');
+    if (searchForm) {
+        searchForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const query = document.getElementById('location-search-input').value.trim().toLowerCase();
+
+            // Check if coordinates
+            const coordMatch = query.match(/(-?\d+\.?\d*)[,\s]+(-?\d+\.?\d*)/);
+            if (coordMatch) {
+                const lat = parseFloat(coordMatch[1]);
+                const lon = parseFloat(coordMatch[2]);
+                selectCoordinate(lat, lon, `Coordinate (${lat}, ${lon})`);
+                return;
+            }
+
+            // Check city names
+            if (query.includes('chandrapur')) {
+                selectCoordinate(19.9615, 79.2961, "Chandrapur City");
+            } else if (query.includes('amravati')) {
+                selectCoordinate(20.9374, 77.7796, "Amravati Camp");
+            } else if (query.includes('akola')) {
+                selectCoordinate(20.7002, 77.0082, "Akola Industrial");
+            } else if (query.includes('wardha')) {
+                selectCoordinate(20.7453, 78.6022, "Wardha Sevagram");
+            } else if (query.includes('yavatmal')) {
+                selectCoordinate(20.3888, 78.1204, "Yavatmal MIDC");
             } else {
-                map.addLayer(gridLayerGroup);
-                toggleBtn.classList.add('active');
+                selectCoordinate(21.1458, 79.0882, "Nagpur Central");
             }
         });
     }
 
-    // Reset View Button
-    const resetBtn = document.getElementById('reset-view');
-    if (resetBtn) {
-        resetBtn.addEventListener('click', () => {
-            map.setView([20.65, 78.45], 7, { animate: true });
+    // Locate Me Button
+    const locateBtn = document.getElementById('btn-locate-me');
+    if (locateBtn) {
+        locateBtn.addEventListener('click', () => {
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        const lat = parseFloat(pos.coords.latitude.toFixed(4));
+                        const lon = parseFloat(pos.coords.longitude.toFixed(4));
+                        selectCoordinate(lat, lon, "Your Current Location");
+                        showToast(`📍 Located at ${lat}° N, ${lon}° E`);
+                    },
+                    (err) => {
+                        // Fallback to Nagpur
+                        selectCoordinate(21.1458, 79.0882, "Nagpur Central");
+                        showToast("Location access declined. Displaying Vidarbha Hub (Nagpur).");
+                    },
+                    { timeout: 6000 }
+                );
+            } else {
+                showToast("Geolocation not supported by your browser.");
+            }
         });
     }
 
-    // Basemap Layer Toggle Pills
-    const btnDark = document.getElementById('btn-layer-dark');
-    const btnOsm = document.getElementById('btn-layer-osm');
-    const btnSat = document.getElementById('btn-layer-sat');
-
-    function setActiveBasemap(targetLayer, activeBtn) {
-        if (!map) return;
-        [esriDarkLayer, osmStandardLayer, esriSatelliteLayer].forEach(l => {
-            if (l && map.hasLayer(l)) map.removeLayer(l);
+    // Save Location Button
+    const saveLocBtn = document.getElementById('btn-save-location');
+    if (saveLocBtn) {
+        saveLocBtn.addEventListener('click', () => {
+            const fav = {
+                name: activeTargetCoords.name,
+                lat: activeTargetCoords.lat,
+                lon: activeTargetCoords.lon,
+                savedAt: new Date().toISOString()
+            };
+            try {
+                localStorage.setItem('saved_air_location', JSON.stringify(fav));
+                showToast(`🔖 Saved "${activeTargetCoords.name}" to favorites!`);
+            } catch (e) {
+                showToast(`Saved "${activeTargetCoords.name}"!`);
+            }
         });
-        if (targetLayer) targetLayer.addTo(map);
-
-        [btnDark, btnOsm, btnSat].forEach(b => {
-            if (b) b.classList.remove('active');
-        });
-        if (activeBtn) activeBtn.classList.add('active');
     }
 
-    if (btnDark) btnDark.addEventListener('click', () => setActiveBasemap(esriDarkLayer, btnDark));
-    if (btnOsm) btnOsm.addEventListener('click', () => setActiveBasemap(osmStandardLayer, btnOsm));
-    if (btnSat) btnSat.addEventListener('click', () => setActiveBasemap(esriSatelliteLayer, btnSat));
+    // Share Report Button
+    const shareBtn = document.getElementById('btn-share-report');
+    if (shareBtn) {
+        shareBtn.addEventListener('click', () => {
+            const aqiVal = document.getElementById('reading-aqi-num')?.textContent || '--';
+            const catVal = document.getElementById('reading-cat-name')?.textContent || 'AQI';
+            const textToCopy = `Air Quality Alert for ${activeTargetCoords.name}: India NAQI is ${aqiVal} (${catVal}) via Vidarbha Live Air Guide.`;
 
-    // Custom Form Submission
-    const predForm = document.getElementById('prediction-form');
-    if (predForm) {
-        predForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const lat = parseFloat(document.getElementById('input-lat').value);
-            const lon = parseFloat(document.getElementById('input-lon').value);
-
-            const overrides = {};
-            const temp = document.getElementById('input-temp').value;
-            const rh = document.getElementById('input-rh').value;
-            const ws = document.getElementById('input-ws').value;
-            const pm25 = document.getElementById('input-pm25').value;
-
-            if (temp) overrides.temperature_override = parseFloat(temp);
-            if (rh) overrides.humidity_override = parseFloat(rh);
-            if (ws) overrides.wind_speed_override = parseFloat(ws);
-            if (pm25) overrides.pm25_override = parseFloat(pm25);
-
-            updateClickMarker(lat, lon);
-            executePointPrediction(lat, lon, overrides);
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    showToast("↗ Report summary copied to clipboard!");
+                }).catch(() => {
+                    showToast("↗ Report prepared for sharing!");
+                });
+            } else {
+                showToast("↗ Report prepared for sharing!");
+            }
         });
     }
 });

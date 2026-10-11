@@ -3,253 +3,555 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vidarbha Virtual Air Quality Grid — Spatiotemporal ML Estimation</title>
-    <meta name="description" content="Operational AI Virtual Sensor Network mapping ECMWF meteorology and Copernicus CAMS chemical tracers to physical CPCB India NAQI standards across Vidarbha.">
+    <title>Air Quality Monitor — Vidarbha Region Live Air Guide</title>
+    <meta name="description" content="Live air quality surveillance and spatiotemporal estimation across Vidarbha cities including Nagpur, Chandrapur, Amravati, and Akola.">
 
-    <!-- Google Fonts: Outfit & Inter -->
+    <!-- Modern Typography: Inter & Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- Leaflet CSS for Geospatial Map -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 
-    <!-- Custom Premium Styles -->
+    <!-- Light Theme Stylesheet -->
     <link rel="stylesheet" href="/static/styles.css">
 </head>
-<body class="dark-theme">
-    <!-- Ambient Glow Background Gradients -->
-    <div class="ambient-glow glow-1"></div>
-    <div class="ambient-glow glow-2"></div>
-    <div class="ambient-glow glow-3"></div>
-
-    <div class="app-layout">
-        <!-- Top Navbar -->
+<body class="light-theme">
+    <div class="app-wrapper">
+        <!-- Top Navigation Bar -->
         <header class="app-header">
-            <div class="header-left">
-                <div class="brand-badge">
-                    <span class="pulsing-radar"></span>
-                    <span class="brand-sub">VIDARBHA AI GRID</span>
+            <div class="header-container">
+                <div class="header-brand" id="brand-logo" role="button" tabindex="0">
+                    <div class="brand-icon-box">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/>
+                            <path d="M12 6a6 6 0 0 0-6 6c0 2 1.5 3.5 3.5 3.5s3.5-1.5 3.5-3.5"/>
+                            <path d="M12 12c1.5 0 2.5-.5 3-1.5"/>
+                        </svg>
+                    </div>
+                    <div class="brand-text">
+                        <div class="brand-title">Air Quality Monitor</div>
+                        <div class="brand-subtitle">Vidarbha Region Live Air Guide</div>
+                    </div>
                 </div>
-                <h1 class="header-title">Virtual Spatiotemporal Air Quality System</h1>
-                <span class="model-badge">XGBoost Champion · R² 0.9690 · MAE ±6.01</span>
-            </div>
 
-            <div class="header-right">
-                <div class="live-clock">
-                    <span class="clock-label">LIVE IST</span>
-                    <span id="current-ist-time" class="clock-val">--:--:--</span>
+                <!-- 2-Page Segmented Tab Switcher -->
+                <nav class="segmented-nav" aria-label="Page Selection">
+                    <button class="nav-segment-btn" id="tab-check-location" data-page="page-check-location">Check Location</button>
+                    <button class="nav-segment-btn active" id="tab-popular-cities" data-page="page-popular-cities">Popular Cities</button>
+                </nav>
+
+                <div class="header-actions">
+                    <div class="live-indicator-pill">
+                        <span class="live-dot pulse"></span>
+                        <span class="live-text" id="header-time-text">Live Synced</span>
+                    </div>
+                    <div class="user-avatar-btn" title="Civic Air Monitor Profile">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#047857" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                    </div>
                 </div>
-                <button id="refresh-btn" class="glass-btn" title="Refresh Live Satellite & Ground Data">
-                    <svg id="refresh-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.19"/>
-                    </svg>
-                    <span>Fetch Live Feeds</span>
-                </button>
             </div>
         </header>
 
-        <!-- KPI Status Ribbon -->
-        <section class="kpi-ribbon">
-            <div class="kpi-card">
-                <div class="kpi-icon icon-nodes">🌐</div>
-                <div class="kpi-meta">
-                    <span class="kpi-title">Active Grid Nodes</span>
-                    <span class="kpi-value">4 Nodes</span>
-                    <span class="kpi-hint">2 Physical CPCB + 2 Virtual AI</span>
-                </div>
-            </div>
-
-            <div class="kpi-card">
-                <div class="kpi-icon icon-aqi">🌫️</div>
-                <div class="kpi-meta">
-                    <span class="kpi-title">Vidarbha Regional Avg</span>
-                    <span id="regional-avg-aqi" class="kpi-value text-accent">--</span>
-                    <span id="regional-avg-category" class="kpi-hint">Analyzing...</span>
-                </div>
-            </div>
-
-            <div class="kpi-card">
-                <div class="kpi-icon icon-acc">🎯</div>
-                <div class="kpi-meta">
-                    <span class="kpi-title">Model Precision</span>
-                    <span class="kpi-value text-emerald">±6.01 pts</span>
-                    <span class="kpi-hint">93.1% error reduction vs IDW</span>
-                </div>
-            </div>
-
-            <div class="kpi-card">
-                <div class="kpi-icon icon-station">📡</div>
-                <div class="kpi-meta">
-                    <span class="kpi-title">CPCB Ground Status</span>
-                    <span class="kpi-value text-blue">Verified Active</span>
-                    <span class="kpi-hint">Official CPCB CCR Portal Feed</span>
-                </div>
-            </div>
-        </section>
-
-        <!-- Main Dashboard Split: Map & Interactive Virtual Inspector -->
-        <main class="dashboard-grid">
-            <!-- Left Side: Geospatial Map Canvas -->
-            <section class="glass-panel map-panel">
-                <div class="panel-header">
-                    <div>
-                        <h2 class="panel-title">Geospatial Sensor Grid & Spatial Mesh</h2>
-                        <p class="panel-subtitle">Click anywhere on the map to deploy a point Virtual Sensor at those coordinates</p>
+        <!-- Main Dynamic Content Container -->
+        <main class="main-content">
+            <!-- =================================================================== -->
+            <!-- PAGE 1: CHECK LOCATION (Interactive Map & Coordinate Inspector)    -->
+            <!-- =================================================================== -->
+            <section id="page-check-location" class="page-view hidden">
+                <div class="page-header">
+                    <div class="hero-badge">
+                        <span class="live-dot pulse"></span>
+                        <span>Live Vidarbha Regional Sensor Grid</span>
                     </div>
-                    <div class="map-controls">
-                        <button id="btn-layer-dark" class="glass-pill-btn active" title="Sleek Dark Canvas (No API Key)">🌑 Dark</button>
-                        <button id="btn-layer-osm" class="glass-pill-btn" title="OpenStreetMap Streets & Boundaries">🗺️ Streets</button>
-                        <button id="btn-layer-sat" class="glass-pill-btn" title="Esri High-Resolution Satellite">🛰️ Satellite</button>
-                        <button id="toggle-heatmap" class="glass-pill-btn active" title="Toggle AI Spatial Mesh Grid">Spatial Mesh</button>
-                        <button id="reset-view" class="glass-pill-btn" title="Reset Map View">Reset View</button>
-                    </div>
-                </div>
+                    <h1 class="page-title">Check Local Air Quality</h1>
+                    <p class="page-subtitle">Enter your village, district, or landmarks across Eastern Maharashtra for instant, easy-to-understand health advisories.</p>
 
-                <div id="vidarbha-map" class="map-container"></div>
-
-                <!-- Map Legend -->
-                <div class="map-legend">
-                    <div class="legend-item"><span class="legend-dot physical"></span> Physical Station (CPCB/MPCB)</div>
-                    <div class="legend-item"><span class="legend-dot virtual"></span> Virtual AI Node (Zero Sensors)</div>
-                    <div class="legend-item"><span class="legend-dot custom"></span> Interactive Click Inspector</div>
-                </div>
-            </section>
-
-            <!-- Right Side: Custom Virtual Sensor Inspector / Point Deployment -->
-            <section class="glass-panel inspector-panel">
-                <div class="panel-header">
-                    <div>
-                        <h2 class="panel-title">Point Virtual Sensor Deployment</h2>
-                        <p class="panel-subtitle">Simulate micro-scale air quality at any geographic coordinate</p>
-                    </div>
-                    <span id="active-point-badge" class="badge-tag">READY</span>
-                </div>
-
-                <div class="inspector-content">
-                    <form id="prediction-form" class="inspector-form">
-                        <div class="form-row">
-                            <div class="input-group">
-                                <label for="input-lat">Latitude (°N)</label>
-                                <input type="number" id="input-lat" step="0.0001" min="18.0" max="23.0" value="21.1458" required>
-                            </div>
-                            <div class="input-group">
-                                <label for="input-lon">Longitude (°E)</label>
-                                <input type="number" id="input-lon" step="0.0001" min="75.0" max="82.0" value="79.0882" required>
-                            </div>
+                    <!-- Search Input Bar -->
+                    <form id="search-form" class="search-bar-wrapper">
+                        <div class="search-input-box">
+                            <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"/>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                            </svg>
+                            <input type="text" id="location-search-input" placeholder="Enter landmark, district, or coordinates (e.g., Nagpur Central, 21.1458, 79.0882)" value="Nagpur Central" autocomplete="off">
                         </div>
-
-                        <!-- Micro-Meteorology Overrides (Collapsible) -->
-                        <details class="sim-details">
-                            <summary class="details-summary">
-                                <span>Advanced Atmospheric Tuning (Optional)</span>
-                                <span class="summary-sub">Override ECMWF live defaults</span>
-                            </summary>
-                            <div class="sim-grid">
-                                <div class="input-group small">
-                                    <label for="input-temp">Temp (°C)</label>
-                                    <input type="number" id="input-temp" step="0.5" placeholder="Live">
-                                </div>
-                                <div class="input-group small">
-                                    <label for="input-rh">Humidity (%)</label>
-                                    <input type="number" id="input-rh" min="5" max="100" placeholder="Live">
-                                </div>
-                                <div class="input-group small">
-                                    <label for="input-ws">Wind (km/h)</label>
-                                    <input type="number" id="input-ws" step="0.5" min="0" placeholder="Live">
-                                </div>
-                                <div class="input-group small">
-                                    <label for="input-pm25">CAMS PM2.5</label>
-                                    <input type="number" id="input-pm25" step="1" min="0" placeholder="Live">
-                                </div>
-                            </div>
-                        </details>
-
-                        <button type="submit" id="simulate-btn" class="glow-btn">
-                            <span class="btn-text">Estimate Ground AQI</span>
-                            <span class="btn-sub">Runs 49-Feature Inference</span>
+                        <button type="submit" id="search-submit-btn" class="btn-check-aqi">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                            </svg>
+                            <span>Check Air Quality</span>
                         </button>
                     </form>
 
-                    <!-- Instantaneous Prediction Result Box -->
-                    <div id="inspector-result" class="inspector-result-card hidden">
-                        <div class="result-header">
+                    <!-- Quick Lookups Row -->
+                    <div class="quick-lookups">
+                        <span class="quick-label">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+                            Quick Lookups:
+                        </span>
+                        <div class="lookup-chips">
+                            <button type="button" class="lookup-chip" data-city="nagpur"><span class="chip-dot dot-good"></span> Nagpur Central</button>
+                            <button type="button" class="lookup-chip" data-city="chandrapur"><span class="chip-dot dot-mod"></span> Chandrapur City</button>
+                            <button type="button" class="lookup-chip" data-city="amravati"><span class="chip-dot dot-good"></span> Amravati Camp</button>
+                            <button type="button" class="lookup-chip" data-city="akola"><span class="chip-dot dot-mod"></span> Akola Industrial</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Split View: Interactive Map & Live Reading Panel -->
+                <div class="check-grid">
+                    <!-- Left: Leaflet Geospatial Map Container -->
+                    <div class="map-card">
+                        <div class="card-inner-header">
                             <div>
-                                <span class="result-loc-name" id="res-location-title">Nagpur Region</span>
-                                <span class="result-coords" id="res-coords">21.1458°N, 79.0882°E</span>
+                                <h2 class="card-title-lg">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
+                                    Tap Anywhere on the Map
+                                </h2>
+                                <p class="card-desc">Click on any point in Vidarbha to see local air quality instantly.</p>
                             </div>
-                            <span id="res-category-badge" class="cat-pill">Satisfactory</span>
+                            <span class="sync-tag-live">
+                                <span class="live-dot pulse"></span>
+                                Live Synced
+                            </span>
                         </div>
 
-                        <div class="result-body">
-                            <div class="gauge-box">
-                                <div class="gauge-value" id="res-aqi-val">73.9</div>
-                                <div class="gauge-label">INDIA NAQI</div>
+                        <!-- Map Canvas -->
+                        <div class="map-viewport-wrapper">
+                            <!-- Target Coordinates Tag Overlay -->
+                            <div class="target-coords-pill">
+                                <span class="target-label">TARGET COORDINATES</span>
+                                <span class="target-val" id="display-target-coords">21.1458° N, 79.0882° E</span>
                             </div>
 
-                            <div class="result-stats">
-                                <div class="stat-line">
-                                    <span class="stat-lbl">95% Confidence Interval:</span>
-                                    <span class="stat-v" id="res-ci">[67.9 – 79.9]</span>
-                                </div>
-                                <div class="stat-line">
-                                    <span class="stat-lbl">Dominant Pollutant:</span>
-                                    <span class="stat-v text-accent" id="res-dominant">CO</span>
-                                </div>
-                                <div class="stat-line">
-                                    <span class="stat-lbl">Health Advisory:</span>
-                                    <span class="stat-advisory" id="res-advisory">Minor breathing discomfort to sensitive people.</span>
-                                </div>
+                            <!-- Locate Me Floating Button -->
+                            <button id="btn-locate-me" class="btn-floating-locate" title="Center to My Location">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
+                                <span>Locate Me</span>
+                            </button>
+
+                            <div id="vidarbha-map" class="map-canvas"></div>
+
+                            <!-- Map Bottom Legend -->
+                            <div class="map-bottom-legend">
+                                <span class="legend-title">AQI Scale:</span>
+                                <span class="legend-item"><span class="color-bullet good"></span> 0–50 Good</span>
+                                <span class="legend-item"><span class="color-bullet sat"></span> 51–100 Satisfactory</span>
+                                <span class="legend-item"><span class="color-bullet mod"></span> 101–200 Moderate</span>
+                                <span class="legend-note">· Tap anywhere on grid to sample</span>
                             </div>
                         </div>
 
-                        <!-- Physical Ground Station Status (Shown only if physical station placed at coordinate) -->
-                        <div id="res-station-box" style="margin-top: 10px;"></div>
+                        <!-- Station Status Strip Below Map -->
+                        <div class="station-status-strip" id="station-status-card">
+                            <div class="station-icon-wrap">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><path d="M4.9 19.1A10 10 0 0 1 2 12C2 6.5 6.5 2 12 2s10 4.5 10 10c0 2.6-1 5-2.9 7.1"/><path d="M7.8 16.2A6 6 0 0 1 6 12a6 6 0 0 1 12 0c0 1.6-.6 3.1-1.8 4.2"/><circle cx="12" cy="12" r="2"/></svg>
+                            </div>
+                            <div class="station-details">
+                                <div class="station-name-line" id="station-name-text">Civil Lines Station #04</div>
+                                <div class="station-sub-line" id="station-sub-text">CPCB & Maharashtra Pollution Control Board verified station</div>
+                            </div>
+                            <div class="station-meta-badge" id="station-updated-text">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                <span id="station-time-str">Updated Live IST</span>
+                            </div>
+                        </div>
+                    </div>
 
-                        <!-- Live Observation Timestamp Badge -->
-                        <div class="obs-timestamp-bar">
-                            <span class="pulse-dot"></span>
-                            <span>Live Observation Ingested: <b id="res-obs-time">--:-- IST</b> (Zero Fallback)</span>
-                            <span class="latency-tag" id="res-latency">120ms</span>
+                    <!-- Right: Real-Time Reading & Health Advice Panel -->
+                    <div class="reading-column">
+                        <div class="reading-card">
+                            <div class="reading-header">
+                                <span class="reading-badge-tag">REAL-TIME READING</span>
+                                <h2 class="reading-title" id="reading-city-title">Current Air Quality in Nagpur Area</h2>
+                                <div class="reading-coords-line">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
+                                    <span id="reading-point-coords">Selected Point: 21.1458° N, 79.0882° E</span>
+                                </div>
+                            </div>
+
+                            <!-- AQI Hero Score Box -->
+                            <div class="aqi-hero-box">
+                                <div class="aqi-score-container">
+                                    <span class="aqi-main-number" id="reading-aqi-num">98</span>
+                                    <span class="aqi-total-scale">/ 500</span>
+                                </div>
+                                <div class="aqi-category-container">
+                                    <div class="cat-pill satisfactory" id="reading-cat-pill">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                        <span id="reading-cat-name">Satisfactory</span>
+                                    </div>
+                                    <span class="cat-guidance-sub" id="reading-cat-sub">Safe for everyday activities</span>
+                                </div>
+                            </div>
+
+                            <!-- Health & Activity Guidance Block -->
+                            <div class="guidance-banner" id="guidance-banner">
+                                <div class="guidance-icon-box">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#047857" stroke-width="2.2"><circle cx="12" cy="5" r="2"/><path d="m15 22-3-8 3-5-6-2-2 4 4 1-2 10"/></svg>
+                                </div>
+                                <div class="guidance-content">
+                                    <div class="guidance-title">Health & Activity Guidance</div>
+                                    <p class="guidance-text" id="reading-guidance-text">Air quality is good. Great day for outdoor activities, walking, and opening windows!</p>
+                                </div>
+                            </div>
+
+                            <!-- Telemetry Metrics Grid (3 Boxes) -->
+                            <div class="metrics-grid">
+                                <div class="metric-card">
+                                    <div class="metric-head">
+                                        <span class="metric-label">Temperature</span>
+                                        <span class="metric-emoji">🌡️</span>
+                                    </div>
+                                    <div class="metric-val" id="metric-temp">32°C</div>
+                                    <div class="metric-hint" id="metric-temp-hint">Warm & Sunny</div>
+                                </div>
+
+                                <div class="metric-card">
+                                    <div class="metric-head">
+                                        <span class="metric-label">Humidity</span>
+                                        <span class="metric-emoji">💧</span>
+                                    </div>
+                                    <div class="metric-val" id="metric-rh">35%</div>
+                                    <div class="metric-hint" id="metric-rh-hint">Comfortable</div>
+                                </div>
+
+                                <div class="metric-card">
+                                    <div class="metric-head">
+                                        <span class="metric-label">Main Pollutant</span>
+                                        <span class="metric-emoji">〰️</span>
+                                    </div>
+                                    <div class="metric-val" id="metric-pollutant">Dust & PM2.5</div>
+                                    <div class="metric-hint" id="metric-pollutant-hint">Low particulate level</div>
+                                </div>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="reading-actions">
+                                <button type="button" id="btn-save-location" class="btn-action-primary">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
+                                    <span>Save Location</span>
+                                </button>
+                                <button type="button" id="btn-share-report" class="btn-action-secondary">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                                    <span>Share Report</span>
+                                </button>
+                            </div>
                         </div>
 
-                        <!-- Full Real-Time Live Features Breakdown -->
-                        <div class="features-accordion">
-                            <!-- Chemical Tracers -->
-                            <div class="feature-group">
-                                <div class="f-group-title">🌫️ Live Chemical Tracers (Copernicus CAMS)</div>
-                                <div class="f-grid">
-                                    <div class="f-item"><span class="f-k">PM2.5</span><span class="f-v" id="f-pm25">-- µg/m³</span></div>
-                                    <div class="f-item"><span class="f-k">PM10</span><span class="f-v" id="f-pm10">-- µg/m³</span></div>
-                                    <div class="f-item"><span class="f-k">NO₂</span><span class="f-v" id="f-no2">-- µg/m³</span></div>
-                                    <div class="f-item"><span class="f-k">SO₂</span><span class="f-v" id="f-so2">-- µg/m³</span></div>
-                                    <div class="f-item"><span class="f-k">CO</span><span class="f-v" id="f-co">-- µg/m³</span></div>
-                                    <div class="f-item"><span class="f-k">O₃</span><span class="f-v" id="f-o3">-- µg/m³</span></div>
+                        <!-- Seasonal Vidarbha Advisory Card -->
+                        <div class="seasonal-advisory-card">
+                            <div class="seasonal-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                            </div>
+                            <div class="seasonal-body">
+                                <span class="seasonal-title">Seasonal Vidarbha Advisory:</span>
+                                <p class="seasonal-text">Post-harvest agrarian thermal winds often concentrate surface particulates between 12:00 PM and 3:30 PM. Plan heavy agricultural and athletic activity before 10:00 AM.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- =================================================================== -->
+            <!-- PAGE 2: POPULAR CITIES (Regional Grid, Cards & Knowledge Base)     -->
+            <!-- =================================================================== -->
+            <section id="page-popular-cities" class="page-view">
+                <div class="page-header-row">
+                    <div>
+                        <div class="section-tag-row">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.2"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
+                            <span>REGIONAL SURVEILLANCE</span>
+                        </div>
+                        <h1 class="page-title">Air Quality Across Popular Vidarbha Cities</h1>
+                        <p class="page-subtitle">Current live air readings and simple health advice for major urban centers in the region.</p>
+                    </div>
+
+                    <div class="status-pill-synced">
+                        <span class="live-dot pulse"></span>
+                        <span>Live Stations Synced · Just Now</span>
+                    </div>
+                </div>
+
+                <!-- 2x2 Cities Grid (Nagpur, Chandrapur, Amravati, Akola) -->
+                <div class="cities-grid" id="cities-grid-container">
+                    <!-- Cards are rendered dynamically from /api/nodes and have fallback templates below -->
+                    
+                    <!-- Card 1: Nagpur -->
+                    <div class="city-card" id="card-nagpur">
+                        <div class="city-card-top">
+                            <div class="city-info-block">
+                                <div class="city-pin-icon">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
+                                </div>
+                                <div>
+                                    <h3 class="city-name">Nagpur</h3>
+                                    <span class="city-sub">Central Vidarbha Monitoring</span>
                                 </div>
                             </div>
+                            <div class="city-aqi-pill moderate" id="pill-nagpur">
+                                <span class="pill-icon">⚠️</span>
+                                <span class="pill-text">117 · Moderate</span>
+                            </div>
+                        </div>
 
-                            <!-- Weather Parameters -->
-                            <div class="feature-group">
-                                <div class="f-group-title">⛅ Live Meteorology (ECMWF Operational)</div>
-                                <div class="f-grid">
-                                    <div class="f-item"><span class="f-k">Temperature</span><span class="f-v" id="f-temp">--°C</span></div>
-                                    <div class="f-item"><span class="f-k">Humidity</span><span class="f-v" id="f-rh">--%</span></div>
-                                    <div class="f-item"><span class="f-k">Dew Spread</span><span class="f-v" id="f-dew">--°C</span></div>
-                                    <div class="f-item"><span class="f-k">Pressure</span><span class="f-v" id="f-pressure">-- hPa</span></div>
-                                    <div class="f-item"><span class="f-k">Wind Velocity</span><span class="f-v" id="f-wind">-- km/h</span></div>
-                                    <div class="f-item"><span class="f-k">Solar Rad</span><span class="f-v" id="f-solar">-- W/m²</span></div>
+                        <div class="city-advice-quote moderate" id="quote-nagpur">
+                            <b>Air Quality: Moderate (117)</b> — Sensitive individuals should consider reducing prolonged outdoor exertion.
+                        </div>
+
+                        <div class="city-stats-row">
+                            <div class="stat-col">
+                                <span class="stat-lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg> Temperature</span>
+                                <span class="stat-main" id="stat-temp-nagpur">34°C</span>
+                            </div>
+                            <div class="stat-col">
+                                <span class="stat-lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg> Air Speed</span>
+                                <span class="stat-main" id="stat-wind-nagpur">8 km/h</span>
+                                <span class="stat-sub">Gentle Breeze</span>
+                            </div>
+                            <div class="stat-col">
+                                <span class="stat-lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Status</span>
+                                <span class="stat-main text-emerald" id="stat-status-nagpur">Normal OK</span>
+                                <span class="stat-sub text-emerald">Safe outdoors</span>
+                            </div>
+                        </div>
+
+                        <button class="btn-card-forecast" data-city="nagpur" data-lat="21.1458" data-lon="79.0882">
+                            <span>View Detailed Forecast</span>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                        </button>
+                    </div>
+
+                    <!-- Card 2: Chandrapur -->
+                    <div class="city-card" id="card-chandrapur">
+                        <div class="city-card-top">
+                            <div class="city-info-block">
+                                <div class="city-pin-icon">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
+                                </div>
+                                <div>
+                                    <h3 class="city-name">Chandrapur</h3>
+                                    <span class="city-sub">Southern Industrial Corridor</span>
                                 </div>
                             </div>
+                            <div class="city-aqi-pill moderate" id="pill-chandrapur">
+                                <span class="pill-icon">⚠️</span>
+                                <span class="pill-text">142 · Moderate</span>
+                            </div>
+                        </div>
 
-                            <!-- Spatial Transport Physics -->
-                            <div class="feature-group">
-                                <div class="f-group-title">🛣️ Spatial Transport & Infrastructure</div>
-                                <div class="f-grid">
-                                    <div class="f-item"><span class="f-k">Road Density</span><span class="f-v" id="f-roaddensity">-- /km²</span></div>
-                                    <div class="f-item"><span class="f-k">Total Roads</span><span class="f-v" id="f-totalroads">--</span></div>
-                                    <div class="f-item"><span class="f-k">Dist to Nagpur</span><span class="f-v" id="f-dist-nagpur">-- km</span></div>
-                                    <div class="f-item"><span class="f-k">Dist to Chandrapur</span><span class="f-v" id="f-dist-chandra">-- km</span></div>
+                        <div class="city-advice-quote moderate" id="quote-chandrapur">
+                            <b>Air Quality: Moderate (142)</b> — Noticeable haze near industrial areas. Mask recommended for prolonged outdoor work.
+                        </div>
+
+                        <div class="city-stats-row">
+                            <div class="stat-col">
+                                <span class="stat-lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg> Temperature</span>
+                                <span class="stat-main" id="stat-temp-chandrapur">35°C</span>
+                            </div>
+                            <div class="stat-col">
+                                <span class="stat-lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg> Air Speed</span>
+                                <span class="stat-main" id="stat-wind-chandrapur">5 km/h</span>
+                                <span class="stat-sub">Light Wind</span>
+                            </div>
+                            <div class="stat-col">
+                                <span class="stat-lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Status</span>
+                                <span class="stat-main text-amber" id="stat-status-chandrapur">Use Mask</span>
+                                <span class="stat-sub text-amber">If sensitive</span>
+                            </div>
+                        </div>
+
+                        <button class="btn-card-forecast" data-city="chandrapur" data-lat="19.9615" data-lon="79.2961">
+                            <span>View Detailed Forecast</span>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                        </button>
+                    </div>
+
+                    <!-- Card 3: Amravati -->
+                    <div class="city-card" id="card-amravati">
+                        <div class="city-card-top">
+                            <div class="city-info-block">
+                                <div class="city-pin-icon">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
                                 </div>
+                                <div>
+                                    <h3 class="city-name">Amravati</h3>
+                                    <span class="city-sub">Western Vidarbha Urban Basin</span>
+                                </div>
+                            </div>
+                            <div class="city-aqi-pill satisfactory" id="pill-amravati">
+                                <span class="pill-icon">✓</span>
+                                <span class="pill-text">92 · Satisfactory</span>
+                            </div>
+                        </div>
+
+                        <div class="city-advice-quote satisfactory" id="quote-amravati">
+                            <b>Air Quality: Satisfactory (92)</b> — Clean and fresh air. Perfect for morning jogs, sports, and outdoor activities.
+                        </div>
+
+                        <div class="city-stats-row">
+                            <div class="stat-col">
+                                <span class="stat-lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg> Temperature</span>
+                                <span class="stat-main" id="stat-temp-amravati">31°C</span>
+                            </div>
+                            <div class="stat-col">
+                                <span class="stat-lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg> Air Speed</span>
+                                <span class="stat-main" id="stat-wind-amravati">11 km/h</span>
+                                <span class="stat-sub">Moderate Breeze</span>
+                            </div>
+                            <div class="stat-col">
+                                <span class="stat-lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Status</span>
+                                <span class="stat-main text-emerald" id="stat-status-amravati">Ideal Air</span>
+                                <span class="stat-sub text-emerald">Great outdoor run</span>
+                            </div>
+                        </div>
+
+                        <button class="btn-card-forecast btn-emerald" data-city="amravati" data-lat="20.9374" data-lon="77.7796">
+                            <span>View Detailed Forecast</span>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                        </button>
+                    </div>
+
+                    <!-- Card 4: Akola -->
+                    <div class="city-card" id="card-akola">
+                        <div class="city-card-top">
+                            <div class="city-info-block">
+                                <div class="city-pin-icon">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
+                                </div>
+                                <div>
+                                    <h3 class="city-name">Akola</h3>
+                                    <span class="city-sub">Cotton City Plain Monitor</span>
+                                </div>
+                            </div>
+                            <div class="city-aqi-pill good" id="pill-akola">
+                                <span class="pill-icon">✓</span>
+                                <span class="pill-text">88 · Good</span>
+                            </div>
+                        </div>
+
+                        <div class="city-advice-quote good" id="quote-akola">
+                            <b>Air Quality: Good (88)</b> — Clean atmosphere with minimal airborne particulate matter.
+                        </div>
+
+                        <div class="city-stats-row">
+                            <div class="stat-col">
+                                <span class="stat-lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg> Temperature</span>
+                                <span class="stat-main" id="stat-temp-akola">33°C</span>
+                            </div>
+                            <div class="stat-col">
+                                <span class="stat-lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg> Air Speed</span>
+                                <span class="stat-main" id="stat-wind-akola">7 km/h</span>
+                                <span class="stat-sub">Light Air</span>
+                            </div>
+                            <div class="stat-col">
+                                <span class="stat-lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Status</span>
+                                <span class="stat-main text-emerald" id="stat-status-akola">Great Quality</span>
+                                <span class="stat-sub text-emerald">Optimal health</span>
+                            </div>
+                        </div>
+
+                        <button class="btn-card-forecast btn-emerald" data-city="akola" data-lat="20.7002" data-lon="77.0082">
+                            <span>View Detailed Forecast</span>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Regional Ecological Insights (Buffer Zone & Industrial Ring) -->
+                <div class="insights-grid">
+                    <div class="insight-card">
+                        <div class="insight-thumb thumb-green">
+                            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#047857" stroke-width="1.8"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
+                        </div>
+                        <div class="insight-text">
+                            <span class="insight-category text-emerald">NAGPUR & AMRAVATI BELT</span>
+                            <h3 class="insight-title">Green Buffer Zone</h3>
+                            <p class="insight-desc">Dense urban tree coverage and regional agricultural belts maintain lower particulate counts through natural canopy filtration and canopy dispersion.</p>
+                        </div>
+                    </div>
+
+                    <div class="insight-card">
+                        <div class="insight-thumb thumb-orange">
+                            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#c2410c" stroke-width="1.8"><path d="M6 22V10l7-5v7l5-3v13H6z"/><path d="M18 14h2a2 2 0 0 1 2 2v6h-4v-8z"/><line x1="10" y1="14" x2="10" y2="14.01"/><line x1="10" y1="18" x2="10" y2="18.01"/></svg>
+                        </div>
+                        <div class="insight-text">
+                            <span class="insight-category text-amber">INDUSTRIAL CORRIDORS</span>
+                            <h3 class="insight-title">Chandrapur Thermal Ring</h3>
+                            <p class="insight-desc">Higher localized PM2.5 readings are consistently detected along mining and power generation arteries during thermal inversion periods.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- "How to Understand Air Quality Numbers" Scale Guide -->
+                <div class="aqi-guide-card">
+                    <div class="guide-header-row">
+                        <div>
+                            <h2 class="guide-main-title">How to Understand Air Quality Numbers</h2>
+                            <p class="guide-main-sub">Simple guidelines designed to help you plan outdoor activities safely every day.</p>
+                        </div>
+                        <div class="guide-verified-badge">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                            <span>Based on National AQI Index</span>
+                        </div>
+                    </div>
+
+                    <!-- Multi-Color Gradient Progress Bar -->
+                    <div class="cpcb-gradient-track">
+                        <div class="grad-seg seg-good" style="flex: 100;"></div>
+                        <div class="grad-seg seg-mod" style="flex: 100;"></div>
+                        <div class="grad-seg seg-poor" style="flex: 100;"></div>
+                        <div class="grad-seg seg-severe" style="flex: 100;"></div>
+                    </div>
+
+                    <!-- 4 Category Explanation Cards -->
+                    <div class="scale-cards-grid">
+                        <div class="scale-card">
+                            <div class="scale-card-head">
+                                <span class="scale-badge-num bg-good-tint text-good">✓ 0 – 100</span>
+                                <h4 class="scale-card-name">Good / Satisfactory</h4>
+                            </div>
+                            <p class="scale-card-desc">Clean air, safe for everyone. Ideal for jogging, outdoor sports, and open windows.</p>
+                            <div class="scale-card-footer text-good">
+                                <span>🌿 No precautions needed</span>
+                            </div>
+                        </div>
+
+                        <div class="scale-card">
+                            <div class="scale-card-head">
+                                <span class="scale-badge-num bg-mod-tint text-mod">⚠️ 101 – 200</span>
+                                <h4 class="scale-card-name">Moderate</h4>
+                            </div>
+                            <p class="scale-card-desc">Acceptable air quality. Slight risk or breathing difficulty for sensitive groups.</p>
+                            <div class="scale-card-footer text-mod">
+                                <span>🛡️ Sensitive people rest more</span>
+                            </div>
+                        </div>
+
+                        <div class="scale-card">
+                            <div class="scale-card-head">
+                                <span class="scale-badge-num bg-poor-tint text-poor">⚠️ 201 – 300</span>
+                                <h4 class="scale-card-name">Poor</h4>
+                            </div>
+                            <p class="scale-card-desc">Breathing discomfort possible for most people. Wear a mask for prolonged outdoor work.</p>
+                            <div class="scale-card-footer text-poor">
+                                <span>😷 Face mask suggested</span>
+                            </div>
+                        </div>
+
+                        <div class="scale-card">
+                            <div class="scale-card-head">
+                                <span class="scale-badge-num bg-severe-tint text-severe">🚫 301+</span>
+                                <h4 class="scale-card-name">Unhealthy / Severe</h4>
+                            </div>
+                            <p class="scale-card-desc">Harmful air for all residents. Stay indoors, keep windows closed, and run air purifiers.</p>
+                            <div class="scale-card-footer text-severe">
+                                <span>🚪 Stay indoors safely</span>
                             </div>
                         </div>
                     </div>
@@ -257,62 +559,29 @@
             </section>
         </main>
 
-        <!-- Grid Nodes Showcase (Nagpur, Chandrapur, Amravati, Akola) -->
-        <section class="nodes-section">
-            <div class="section-title-bar">
-                <div>
-                    <h2 class="section-title">Vidarbha Grid Node Benchmarking</h2>
-                    <p class="section-subtitle">Real-time side-by-side comparison: Physical Ground Stations vs. AI Virtual Sensors</p>
+        <!-- Civic Footer -->
+        <footer class="app-footer">
+            <div class="footer-container">
+                <div class="footer-left">
+                    <div class="footer-title">Vidarbha Air Quality Initiative</div>
+                    <p class="footer-desc">Providing civic, accessible environmental updates across Nagpur, Chandrapur, and Eastern Maharashtra.</p>
                 </div>
-                <div class="filter-pills">
-                    <span class="filter-pill active">All 4 Nodes</span>
-                </div>
-            </div>
-
-            <div id="nodes-container" class="nodes-grid">
-                <!-- Dynamically populated via app.js -->
-                <div class="loading-nodes">
-                    <span class="spinner"></span>
-                    <p>Ingesting live CAMS satellite & CPCB ground telemetry...</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Official CPCB NAQI Standards Scale -->
-        <footer class="cpcb-standards-footer">
-            <h3 class="standards-title">Official Central Pollution Control Board (CPCB) NAQI Breakpoints</h3>
-            <div class="standards-bar">
-                <div class="scale-segment good" title="0 - 50: Good">
-                    <span class="scale-range">0 - 50</span>
-                    <span class="scale-label">Good</span>
-                </div>
-                <div class="scale-segment satisfactory" title="51 - 100: Satisfactory">
-                    <span class="scale-range">51 - 100</span>
-                    <span class="scale-label">Satisfactory</span>
-                </div>
-                <div class="scale-segment moderate" title="101 - 200: Moderate">
-                    <span class="scale-range">101 - 200</span>
-                    <span class="scale-label">Moderate</span>
-                </div>
-                <div class="scale-segment poor" title="201 - 300: Poor">
-                    <span class="scale-range">201 - 300</span>
-                    <span class="scale-label">Poor</span>
-                </div>
-                <div class="scale-segment very-poor" title="301 - 400: Very Poor">
-                    <span class="scale-range">301 - 400</span>
-                    <span class="scale-label">Very Poor</span>
-                </div>
-                <div class="scale-segment severe" title="401 - 500: Severe">
-                    <span class="scale-range">401 - 500</span>
-                    <span class="scale-label">Severe</span>
+                <div class="footer-right">
+                    <span>© 2025 Clean Air Vidarbha. Public health guidance.</span>
                 </div>
             </div>
         </footer>
     </div>
 
+    <!-- Notification Toast Element -->
+    <div id="toast-message" class="toast-popup hidden">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        <span id="toast-text">Location saved to favorites!</span>
+    </div>
+
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <!-- Custom Application Logic -->
+    <!-- Application Logic -->
     <script src="/static/app.js"></script>
 </body>
 </html>

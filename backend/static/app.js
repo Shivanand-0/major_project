@@ -107,7 +107,8 @@ function initMap() {
 }
 
 // 3. Update or Place Interactive Target Pin
-function updateTargetPin(lat, lon, label) {
+// 3. Update or Place Interactive Target Pin
+function updateTargetPin(lat, lon, label = null, prediction = null, features = null) {
     if (!map) return;
 
     if (targetClickMarker) {
@@ -115,20 +116,89 @@ function updateTargetPin(lat, lon, label) {
     }
 
     const pinHtml = `
-        <div style="background:#0f172a; color:#ffffff; padding:4px 10px; border-radius:999px; font-family:'Plus Jakarta Sans',sans-serif; font-size:11px; font-weight:700; border:2px solid #ffffff; box-shadow:0 4px 14px rgba(0,0,0,0.25); display:flex; align-items:center; gap:5px; transform:translate(-50%, -100%);">
-            <span style="width:8px; height:8px; border-radius:50%; background:#10b981;"></span>
-            <span>${label || 'Selected Location'}</span>
+        <div class="custom-map-pin-wrap">
+            <div class="pin-pulse-ring ring-emerald"></div>
+            <div class="pin-marker-head pin-emerald">
+                <svg width="28" height="36" viewBox="0 0 24 32" fill="none">
+                    <path d="M12 0C5.372 0 0 5.373 0 12c0 8.5 12 20 12 20s12-11.5 12-20c0-6.627-5.372-12-12-12z" fill="#059669"/>
+                    <circle cx="12" cy="11" r="4.5" fill="#ffffff"/>
+                </svg>
+            </div>
         </div>
     `;
 
     const icon = L.divIcon({
-        className: 'custom-target-marker',
+        className: 'custom-pin-divicon',
         html: pinHtml,
-        iconSize: [120, 30],
-        iconAnchor: [60, 30]
+        iconSize: [28, 36],
+        iconAnchor: [14, 36],
+        popupAnchor: [0, -36]
     });
 
+    let popupContent = '';
+    const locTitle = label || `Coordinate (${lat.toFixed(3)}, ${lon.toFixed(3)})`;
+    const coordsStr = `${lat.toFixed(4)}° N, ${lon.toFixed(4)}° E`;
+
+    if (prediction) {
+        const aqi = Math.round(prediction.predicted_india_naqi);
+        const cat = getCPCBCategory(aqi);
+        const pm25 = features?.pm25 != null ? features.pm25 : (aqi * 0.45);
+        const temp = features?.temperature_celsius != null ? `${Math.round(features.temperature_celsius)}°C` : '31°C';
+        const hum = features?.relative_humidity != null ? `${Math.round(features.relative_humidity)}%` : '50%';
+        const pol = prediction.responsible_pollutant || 'Dust & O3';
+
+        popupContent = `
+            <div class="map-interactive-popup">
+                <div class="popup-top-row">
+                    <span class="popup-sub-tag">LIVE SENSOR PIN</span>
+                    <span class="popup-aqi-pill ${cat.class}">AQI ${aqi} · ${cat.name}</span>
+                </div>
+                <h4 class="popup-loc-title">${locTitle}</h4>
+                <div class="popup-coords-text">${coordsStr}</div>
+                <div class="popup-mini-grid">
+                    <div class="popup-mini-item">
+                        <span class="p-lbl">PM2.5</span>
+                        <span class="p-val text-emerald">${pm25.toFixed(1)} µg/m³</span>
+                    </div>
+                    <div class="popup-mini-item">
+                        <span class="p-lbl">Weather</span>
+                        <span class="p-val">${temp} · ${hum}</span>
+                    </div>
+                    <div class="popup-mini-item">
+                        <span class="p-lbl">Pollutant</span>
+                        <span class="p-val">${pol}</span>
+                    </div>
+                </div>
+                <div class="popup-footer-status">
+                    <span class="popup-status-dot" style="background:${cat.color};"></span>
+                    <span>${cat.desc}</span>
+                </div>
+            </div>
+        `;
+    } else {
+        popupContent = `
+            <div class="map-interactive-popup">
+                <div class="popup-top-row">
+                    <span class="popup-sub-tag">SELECTED LOCATION</span>
+                    <span class="popup-aqi-pill moderate">Evaluating...</span>
+                </div>
+                <h4 class="popup-loc-title">${locTitle}</h4>
+                <div class="popup-coords-text">${coordsStr}</div>
+                <div class="popup-loading-line">
+                    <span class="live-dot pulse"></span>
+                    <span>Evaluating real-time atmospheric telemetry...</span>
+                </div>
+            </div>
+        `;
+    }
+
     targetClickMarker = L.marker([lat, lon], { icon }).addTo(map);
+    targetClickMarker.bindPopup(popupContent, {
+        offset: [0, -4],
+        closeButton: true,
+        autoClose: false,
+        className: 'custom-leaflet-popup-card'
+    }).openPopup();
 }
 
 // 4. Render City Nodes on Map
@@ -171,7 +241,7 @@ async function selectCoordinate(lat, lon, name = null, cachedNode = null) {
     const coordsEl = document.getElementById('display-target-coords');
     if (coordsEl) coordsEl.textContent = `${lat.toFixed(4)}° N, ${lon.toFixed(4)}° E`;
 
-    // Update Map Pin
+    // Update Map Pin (opens immediately with loading state)
     updateTargetPin(lat, lon, name);
     if (map) {
         map.panTo([lat, lon], { animate: true, duration: 0.6 });
@@ -207,6 +277,8 @@ async function selectCoordinate(lat, lon, name = null, cachedNode = null) {
         }
 
         updateReadingPanel(prediction, features, stationGround, name);
+        // Refresh popup with resolved telemetry & AQI
+        updateTargetPin(lat, lon, name, prediction, features);
     } catch (err) {
         console.error('Failed to evaluate coordinate:', err);
         showToast(`Evaluation note: Using cached baseline for (${lat}, ${lon})`);
@@ -910,31 +982,6 @@ function renderWindLayer(geojson) {
 function sampleIndiaLocation(lat, lon, knownProps = null) {
     if (!indiaHchoMap || lat == null || lon == null || isNaN(lat) || isNaN(lon)) return;
 
-    // Place or move click pin
-    if (indiaClickMarker) {
-        indiaHchoMap.removeLayer(indiaClickMarker);
-    }
-
-    const pinHtml = `
-        <div style="background:#0f172a; color:#ffffff; padding:4px 10px; border-radius:999px; font-family:'Plus Jakarta Sans',sans-serif; font-size:11px; font-weight:700; border:2px solid #ffffff; box-shadow:0 4px 14px rgba(0,0,0,0.25); display:flex; align-items:center; gap:5px; transform:translate(-50%, -100%);">
-            <span style="width:8px; height:8px; border-radius:50%; background:#8b5cf6;"></span>
-            <span>${lat.toFixed(2)}° N, ${lon.toFixed(2)}° E</span>
-        </div>
-    `;
-
-    const icon = L.divIcon({
-        className: 'custom-hcho-marker',
-        html: pinHtml,
-        iconSize: [140, 30],
-        iconAnchor: [70, 30]
-    });
-
-    indiaClickMarker = L.marker([lat, lon], { icon }).addTo(indiaHchoMap);
-
-    // Update Coordinates Line
-    const elCoords = document.getElementById('hcho-insp-coords');
-    if (elCoords) elCoords.textContent = `${lat.toFixed(4)}° N, ${lon.toFixed(4)}° E`;
-
     // Determine Ecoregion & Location Name
     let regionName = "Indian Subcontinent";
     let ecoDesc = "General Atmospheric Domain";
@@ -954,14 +1001,6 @@ function sampleIndiaLocation(lat, lon, knownProps = null) {
     } else if (lat < 18.0) {
         regionName = "Deccan Peninsula & Coastal India";
         ecoDesc = "Maritime boundary layer with dispersed regional agricultural fires.";
-    }
-
-    const elTitle = document.getElementById('hcho-insp-title');
-    if (elTitle) elTitle.textContent = regionName;
-
-    const elZone = document.getElementById('hcho-insp-zone');
-    if (elZone) {
-        elZone.innerHTML = `<b>Region:</b> ${regionName} — <span>${ecoDesc}</span>`;
     }
 
     // Compute or extract metrics
@@ -1031,6 +1070,18 @@ function sampleIndiaLocation(lat, lon, knownProps = null) {
 
     const dirCard = windDir >= 300 || windDir <= 45 ? "NW ➔ SE" : windDir < 135 ? "NE ➔ SW" : "W ➔ E";
 
+    // Update Right Inspector Panel
+    const elCoords = document.getElementById('hcho-insp-coords');
+    if (elCoords) elCoords.textContent = `${lat.toFixed(4)}° N, ${lon.toFixed(4)}° E`;
+
+    const elTitle = document.getElementById('hcho-insp-title');
+    if (elTitle) elTitle.textContent = regionName;
+
+    const elZone = document.getElementById('hcho-insp-zone');
+    if (elZone) {
+        elZone.innerHTML = `<b>Region:</b> ${regionName} — <span>${ecoDesc}</span>`;
+    }
+
     const elHcho = document.getElementById('hcho-insp-val');
     if (elHcho) elHcho.textContent = `${hchoVal.toFixed(2)} × 10¹⁵`;
 
@@ -1052,4 +1103,76 @@ function sampleIndiaLocation(lat, lon, knownProps = null) {
 
     const elWindDir = document.getElementById('hcho-insp-wind-dir');
     if (elWindDir) elWindDir.textContent = `${Math.round(windDir)}° (${dirCard})`;
+
+    // Place or move animated SVG pin marker
+    if (indiaClickMarker) {
+        indiaHchoMap.removeLayer(indiaClickMarker);
+    }
+
+    const pinHtml = `
+        <div class="custom-map-pin-wrap">
+            <div class="pin-pulse-ring ring-violet"></div>
+            <div class="pin-marker-head pin-violet">
+                <svg width="28" height="36" viewBox="0 0 24 32" fill="none">
+                    <path d="M12 0C5.372 0 0 5.373 0 12c0 8.5 12 20 12 20s12-11.5 12-20c0-6.627-5.372-12-12-12z" fill="#7c3aed"/>
+                    <circle cx="12" cy="11" r="4.5" fill="#ffffff"/>
+                </svg>
+            </div>
+        </div>
+    `;
+
+    const icon = L.divIcon({
+        className: 'custom-pin-divicon',
+        html: pinHtml,
+        iconSize: [28, 36],
+        iconAnchor: [14, 36],
+        popupAnchor: [0, -36]
+    });
+
+    const sign = zScore >= 0 ? '+' : '';
+    const zScoreDisplay = `Z = ${sign}${zScore.toFixed(2)}`;
+    const zClass = zScore >= 2.58 ? 'text-red' : zScore >= 1.96 ? 'text-amber' : 'text-blue';
+    const hotspotBadgeClass = zScore >= 2.58 ? 'bg-hotspot-99' : zScore >= 1.96 ? 'bg-hotspot-95' : 'bg-hotspot-norm';
+    const confLabel = zScore >= 2.58 ? '99% Hotspot' : zScore >= 1.96 ? '95% Hotspot' : zScore >= 1.65 ? '90% Hotspot' : 'Baseline / Low';
+
+    const popupContent = `
+        <div class="map-interactive-popup">
+            <div class="popup-top-row">
+                <span class="popup-sub-tag">HCHO SAMPLER PIN</span>
+                <span class="popup-hcho-badge ${hotspotBadgeClass}">${confLabel}</span>
+            </div>
+            <h4 class="popup-loc-title">${regionName}</h4>
+            <div class="popup-coords-text">${lat.toFixed(4)}° N, ${lon.toFixed(4)}° E</div>
+            <div class="popup-mini-grid">
+                <div class="popup-mini-item">
+                    <span class="p-lbl">S5P HCHO Column</span>
+                    <span class="p-val text-violet">${hchoVal.toFixed(2)} × 10¹⁵</span>
+                </div>
+                <div class="popup-mini-item">
+                    <span class="p-lbl">Spatial Z-Score</span>
+                    <span class="p-val ${zClass}">${zScoreDisplay}</span>
+                </div>
+                <div class="popup-mini-item">
+                    <span class="p-lbl">Nearby Fires</span>
+                    <span class="p-val">${firesNearby} fires</span>
+                </div>
+                <div class="popup-mini-item">
+                    <span class="p-lbl">ERA5 Advection</span>
+                    <span class="p-val">${windSpeed.toFixed(1)} m/s · ${dirCard}</span>
+                </div>
+            </div>
+            <div class="popup-footer-status">
+                <span class="popup-status-dot" style="background:${zScore >= 2.58 ? '#ef4444' : zScore >= 1.96 ? '#f59e0b' : '#3b82f6'};"></span>
+                <span>${ecoDesc}</span>
+            </div>
+        </div>
+    `;
+
+    indiaClickMarker = L.marker([lat, lon], { icon }).addTo(indiaHchoMap);
+    indiaClickMarker.bindPopup(popupContent, {
+        offset: [0, -4],
+        closeButton: true,
+        autoClose: false,
+        className: 'custom-leaflet-popup-card'
+    }).openPopup();
 }

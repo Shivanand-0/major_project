@@ -1937,3 +1937,255 @@ body.light-theme {
 @media (max-width: 640px) {
     .hcho-kpi-ribbon { grid-template-columns: 1fr; }
 }
+
+/* ==========================================================================
+   INTERACTIVE MAP PIN & LEAFLET POPUP STYLES
+   ========================================================================== */
+.custom-pin-divicon {
+    background: transparent !important;
+    border: none !important;
+}
+
+.custom-map-pin-wrap {
+    position: relative;
+    width: 28px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+}
+
+.pin-marker-head {
+    width: 28px;
+    height: 36px;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+    transform-origin: 50% 100%;
+    animation: pinDropBounce 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.pin-marker-head.pin-emerald svg {
+    color: #059669;
+}
+
+.pin-marker-head.pin-violet svg {
+    color: #7c3aed;
+}
+
+.pin-pulse-ring {
+    position: absolute;
+    bottom: -3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    animation: pinPulseRing 2s infinite ease-out;
+    pointer-events: none;
+}
+
+.pin-pulse-ring.ring-emerald {
+    background: rgba(16, 185, 129, 0.45);
+    border: 1.5px solid #10b981;
+}
+
+.pin-pulse-ring.ring-violet {
+    background: rgba(139, 92, 246, 0.45);
+    border: 1.5px solid #8b5cf6;
+}
+
+@keyframes pinDropBounce {
+    0% {
+        transform: translateY(-24px) scale(0.6);
+        opacity: 0;
+    }
+    60% {
+        transform: translateY(2px) scale(1.05);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes pinPulseRing {
+    0% {
+        transform: translateX(-50%) scale(0.5);
+        opacity: 0.9;
+    }
+    100% {
+        transform: translateX(-50%) scale(2.4);
+        opacity: 0;
+    }
+}
+
+/* Custom Leaflet Popup Overrides */
+.leaflet-popup.custom-leaflet-popup-card {
+    margin-bottom: 12px;
+}
+
+.leaflet-popup.custom-leaflet-popup-card .leaflet-popup-content-wrapper {
+    background: #ffffff !important;
+    border: 1px solid var(--border-light) !important;
+    border-radius: 14px !important;
+    box-shadow: 0 12px 28px -4px rgba(15, 23, 42, 0.16), 0 4px 10px -2px rgba(15, 23, 42, 0.08) !important;
+    padding: 0 !important;
+    overflow: hidden;
+}
+
+.leaflet-popup.custom-leaflet-popup-card .leaflet-popup-content {
+    margin: 0 !important;
+    line-height: 1.4 !important;
+    min-width: 240px;
+    max-width: 290px;
+}
+
+.leaflet-popup.custom-leaflet-popup-card .leaflet-popup-tip {
+    background: #ffffff !important;
+    border: 1px solid var(--border-light) !important;
+    box-shadow: none !important;
+}
+
+.leaflet-popup.custom-leaflet-popup-card a.leaflet-popup-close-button {
+    top: 8px !important;
+    right: 8px !important;
+    color: #64748b !important;
+    font-size: 16px !important;
+    font-weight: 700 !important;
+    padding: 4px !important;
+    width: 20px !important;
+    height: 20px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 50% !important;
+    transition: var(--transition) !important;
+}
+
+.leaflet-popup.custom-leaflet-popup-card a.leaflet-popup-close-button:hover {
+    color: #0f172a !important;
+    background: #f1f5f9 !important;
+}
+
+/* Interactive Popup Internal Card */
+.map-interactive-popup {
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-family: var(--font-body);
+}
+
+.popup-top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.popup-sub-tag {
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    text-transform: uppercase;
+}
+
+.popup-aqi-pill {
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.popup-aqi-pill.good { background: #ecfdf5; color: #047857; }
+.popup-aqi-pill.satisfactory { background: #f0fdf4; color: #15803d; }
+.popup-aqi-pill.moderate { background: #fefce8; color: #a16207; }
+.popup-aqi-pill.poor { background: #fff7ed; color: #c2410c; }
+.popup-aqi-pill.very-poor { background: #fef2f2; color: #b91c1c; }
+.popup-aqi-pill.severe { background: #450a0a; color: #ffffff; }
+
+.popup-hcho-badge {
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+.bg-hotspot-99 { background: #fee2e2; color: #991b1b; }
+.bg-hotspot-95 { background: #ffedd5; color: #9a3412; }
+.bg-hotspot-norm { background: #f1f5f9; color: #475569; }
+
+.popup-loc-title {
+    font-family: var(--font-heading);
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--text-heading);
+    margin: 0;
+    line-height: 1.25;
+}
+
+.popup-coords-text {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+
+.popup-mini-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+    background: #f8fafc;
+    padding: 8px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
+}
+
+.popup-mini-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.popup-mini-item .p-lbl {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.popup-mini-item .p-val {
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: var(--text-heading);
+}
+
+.popup-footer-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    color: var(--text-body);
+    font-weight: 500;
+    padding-top: 2px;
+}
+
+.popup-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.popup-loading-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    padding: 6px 0;
+}
+
+.text-emerald { color: #059669 !important; }
+.text-violet { color: #7c3aed !important; }
+.text-blue { color: #2563eb !important; }
+.text-red { color: #dc2626 !important; }
+.text-amber { color: #d97706 !important; }
+

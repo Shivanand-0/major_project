@@ -1,0 +1,24 @@
+# ==============================================================================
+# Pan-India HCHO Hotspot & Biomass Burning Surveillance Pipeline Dependencies
+# Python >= 3.10
+# ==============================================================================
+
+# HTTP Networking & Data Ingestion (NASA FIRMS & REST APIs)
+requests>=2.31.0
+
+# Scientific & Array Computations
+numpy>=1.26.0
+
+# Tabular Data Preprocessing & CSV Handling
+pandas>=2.1.0
+
+# Scientific Satellite Format Support (NetCDF4 & HDF5 for Sentinel-5P / ERA5)
+netCDF4>=1.6.5
+cftime>=1.6.2
+h5py>=3.10.0
+
+# Spatial Neighbor Queries (cKDTree) & Statistical Distributions
+scipy>=1.11.0
+
+# Spatial Density Clustering (DBSCAN) & Geospatial Machine Learning
+scikit-learn>=1.3.0

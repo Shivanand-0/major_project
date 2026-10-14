@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 from datetime import datetime, timezone
-from scipy.spatial import cKDTree
+from scipy.spatial import cKDTree, ConvexHull
 from sklearn.cluster import DBSCAN
 
 DS_DIR = Path(__file__).resolve().parent
@@ -116,59 +116,88 @@ def perform_dbscan_clustering(df: pd.DataFrame) -> Tuple[pd.DataFrame, List[Dict
     if len(candidates) == 0:
         candidates = df.sort_values(by="hcho_molec_cm2_e15", ascending=False).head(100).copy()
 
-    # Convert coordinates to radians for haversine metric
-    # eps = 110 km / 6371 km approx 0.017 radians (~1.0 degree)
+    # Convert coordinates to radians for haversine metric (eps = 55 km / 6371 km)
     coords_rad = np.radians(candidates[["latitude", "longitude"]].values)
     
-    db = DBSCAN(eps=0.022, min_samples=4, metric="haversine")
-    candidates["cluster_id"] = db.fit_predict(coords_rad)
-
-    n_clusters = len(set(candidates["cluster_id"])) - (1 if -1 in candidates["cluster_id"].values else 0)
-    print(f"  -> Identified {n_clusters} Distinct Regional Biomass Emission Clusters.")
+    db = DBSCAN(eps=55.0 / 6371.0, min_samples=6, metric="haversine")
+    candidates["raw_cluster_id"] = db.fit_predict(coords_rad)
 
     # Name and summarize major clusters based on geographical centroids
-    cluster_summaries = []
+    raw_clusters = []
     
-    # Pre-defined ecological labels for primary Indian biomass clusters
     ECO_CLUSTER_NAMES = {
         "north": "Punjab-Haryana Agrarian Stubble Burning Core (Indo-Gangetic Basin)",
-        "central": "Central India Deciduous Forest Fire Belt (Vidarbha / MP / Chhattisgarh)",
-        "east_igp": "Central-Eastern Indo-Gangetic Transport Plume (UP & Bihar)",
+        "central": "Central Deciduous Forest Fire Belt (Madhya Pradesh / Bundelkhand)",
+        "east_igp": "Central-Eastern Forest Fire & Industrial Basin (Chhattisgarh / Odisha / Jharkhand)",
+        "vidarbha": "Vidarbha & Northern Deccan Forest Fringe (Maharashtra / Telangana)",
         "northeast": "Northeast Highland Shifting Cultivation (Assam / Mizoram)",
         "peninsula": "Deccan Plateau & Western Ghats Fringe",
-        "east_coast": "Eastern Ghats & Coastal Odisha Biomass Belt"
+        "west_coast": "Western Coastal & Gujarat Agricultural Belt"
     }
 
-    for c_id in sorted(candidates["cluster_id"].unique()):
+    for c_id in sorted(candidates["raw_cluster_id"].unique()):
         if c_id == -1:
             continue  # Noise points
         
-        c_subset = candidates[candidates["cluster_id"] == c_id]
+        c_subset = candidates[candidates["raw_cluster_id"] == c_id]
+        if len(c_subset) < 8:
+            continue  # Ignore tiny micro-clusters
+            
         c_lat = float(c_subset["latitude"].mean())
         c_lon = float(c_subset["longitude"].mean())
         
         # Categorize region by centroid
-        if c_lat >= 29.0 and c_lon <= 77.5:
+        if c_lat >= 28.5 and c_lon <= 77.5:
             c_name = ECO_CLUSTER_NAMES["north"]
             region_tag = "North (Punjab/Haryana)"
-        elif 24.0 <= c_lat <= 28.5 and 77.0 <= c_lon <= 86.5:
+        elif 21.0 <= c_lat <= 25.5 and 80.0 <= c_lon <= 88.5:
             c_name = ECO_CLUSTER_NAMES["east_igp"]
-            region_tag = "Indo-Gangetic Plain"
-        elif 19.0 <= c_lat <= 24.5 and 77.0 <= c_lon <= 83.5:
+            region_tag = "Eastern Forest & Mineral Basin"
+        elif 22.5 <= c_lat <= 28.5 and 74.5 <= c_lon <= 80.5:
             c_name = ECO_CLUSTER_NAMES["central"]
-            region_tag = "Central India (Vidarbha/MP)"
-        elif 23.5 <= c_lat <= 28.5 and c_lon >= 90.0:
+            region_tag = "Central India (MP/Bundelkhand)"
+        elif 18.5 <= c_lat <= 22.5 and 76.0 <= c_lon <= 80.5:
+            c_name = ECO_CLUSTER_NAMES["vidarbha"]
+            region_tag = "Vidarbha & Northern Deccan"
+        elif 20.0 <= c_lat <= 24.0 and 68.5 <= c_lon <= 74.0:
+            c_name = ECO_CLUSTER_NAMES["west_coast"]
+            region_tag = "Western Gujarat Belt"
+        elif c_lon >= 89.0:
             c_name = ECO_CLUSTER_NAMES["northeast"]
             region_tag = "Northeast India"
-        elif c_lat <= 18.0 and c_lon <= 77.0:
+        elif c_lat <= 18.0 and 75.0 <= c_lon <= 81.5:
             c_name = ECO_CLUSTER_NAMES["peninsula"]
             region_tag = "Deccan/Western Ghats"
         else:
             c_name = f"Regional Biomass Plume #{c_id + 1}"
             region_tag = "Regional Corridor"
 
+        # Compute accurate boundary envelope via ConvexHull
+        coords = c_subset[["longitude", "latitude"]].values
+        if len(coords) >= 4:
+            try:
+                hull = ConvexHull(coords)
+                poly_coords = coords[hull.vertices].tolist()
+                poly_coords.append(poly_coords[0])  # Close ring
+            except Exception:
+                poly_coords = [
+                    [float(c_subset["longitude"].min()), float(c_subset["latitude"].min())],
+                    [float(c_subset["longitude"].max()), float(c_subset["latitude"].min())],
+                    [float(c_subset["longitude"].max()), float(c_subset["latitude"].max())],
+                    [float(c_subset["longitude"].min()), float(c_subset["latitude"].max())],
+                    [float(c_subset["longitude"].min()), float(c_subset["latitude"].min())]
+                ]
+        else:
+            poly_coords = [
+                [float(c_subset["longitude"].min()), float(c_subset["latitude"].min())],
+                [float(c_subset["longitude"].max()), float(c_subset["latitude"].min())],
+                [float(c_subset["longitude"].max()), float(c_subset["latitude"].max())],
+                [float(c_subset["longitude"].min()), float(c_subset["latitude"].max())],
+                [float(c_subset["longitude"].min()), float(c_subset["latitude"].min())]
+            ]
+
         summary = {
-            "cluster_id": int(c_id),
+            "raw_id": int(c_id),
             "cluster_name": c_name,
             "region_tag": region_tag,
             "centroid": {"lat": round(c_lat, 4), "lon": round(c_lon, 4)},
@@ -178,6 +207,7 @@ def perform_dbscan_clustering(df: pd.DataFrame) -> Tuple[pd.DataFrame, List[Dict
                 "min_lon": round(float(c_subset["longitude"].min()), 4),
                 "max_lon": round(float(c_subset["longitude"].max()), 4)
             },
+            "polygon_coords": poly_coords,
             "cell_count": int(len(c_subset)),
             "total_active_fires": int(c_subset["fire_count"].sum()),
             "total_frp_mw": round(float(c_subset["total_frp_mw"].sum()), 1),
@@ -187,17 +217,26 @@ def perform_dbscan_clustering(df: pd.DataFrame) -> Tuple[pd.DataFrame, List[Dict
             "dominant_wind_dir_deg": round(float(c_subset["era5_wind_dir_deg"].mean()), 1),
             "mean_wind_speed_ms": round(float(c_subset["era5_wind_speed_ms"].mean()), 2)
         }
-        cluster_summaries.append(summary)
+        raw_clusters.append(summary)
 
     # Sort clusters by integrated fire radiative power
-    cluster_summaries.sort(key=lambda x: x["total_frp_mw"], reverse=True)
+    raw_clusters.sort(key=lambda x: x["total_frp_mw"], reverse=True)
 
-    print(f"\n  Top Biomass Emission Clusters Identified:")
-    for idx, c in enumerate(cluster_summaries[:4]):
-        print(f"    {idx+1}. {c['cluster_name']}")
+    # Re-assign clean sequential 1-based cluster IDs
+    cluster_summaries = []
+    id_mapping = {}
+    for idx, c in enumerate(raw_clusters, start=1):
+        c["cluster_id"] = idx
+        id_mapping[c["raw_id"]] = idx
+        cluster_summaries.append(c)
+
+    print(f"  -> Identified {len(cluster_summaries)} Discrete Regional Biomass Emission Clusters:")
+    for idx, c in enumerate(cluster_summaries[:5]):
+        print(f"    Cluster #{c['cluster_id']}: {c['cluster_name']}")
         print(f"       Centroid: ({c['centroid']['lat']}, {c['centroid']['lon']}) | Fires: {c['total_active_fires']:,} | FRP: {c['total_frp_mw']:,.1f} MW | Mean HCHO: {c['mean_hcho_molec_cm2_e15']} x10^15")
 
     # Map cluster id back to original dataframe
+    candidates["cluster_id"] = candidates["raw_cluster_id"].map(id_mapping).fillna(-1).astype(int)
     df = df.merge(candidates[["latitude", "longitude", "cluster_id"]], on=["latitude", "longitude"], how="left")
     df["cluster_id"] = df["cluster_id"].fillna(-1).astype(int)
     return df, cluster_summaries
@@ -259,8 +298,7 @@ def export_hotspot_geospatial_layers(df: pd.DataFrame, cluster_summaries: List[D
     cluster_features = []
     for c in cluster_summaries:
         b = c["bounds"]
-        # Approximate bounding polygon for cluster envelope
-        polygon_coords = [
+        poly_coords = c.get("polygon_coords") or [
             [b["min_lon"], b["min_lat"]],
             [b["max_lon"], b["min_lat"]],
             [b["max_lon"], b["max_lat"]],
@@ -268,13 +306,16 @@ def export_hotspot_geospatial_layers(df: pd.DataFrame, cluster_summaries: List[D
             [b["min_lon"], b["min_lat"]]
         ]
 
+        # Export properties without internal raw fields
+        props = {k: v for k, v in c.items() if k not in ("raw_id", "polygon_coords")}
+
         cluster_features.append({
             "type": "Feature",
             "geometry": {
                 "type": "Polygon",
-                "coordinates": [polygon_coords]
+                "coordinates": [poly_coords]
             },
-            "properties": c
+            "properties": props
         })
 
     cluster_geojson_path = HOTSPOTS_DIR / "biomass_clusters_dbscan.geojson"

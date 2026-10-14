@@ -1,0 +1,30 @@
+# backend
+
+# Virtual Spatiotemporal Air Quality Grid - Backend Requirements
+# FastAPI Service & ASGI Server
+fastapi>=0.110.0
+uvicorn[standard]>=0.28.0
+pydantic>=2.0.0
+httpx>=0.25.0
+
+# HTTP & Telemetry Ingestion (Copernicus CAMS, ECMWF Open-Meteo, CPCB)
+requests>=2.31.0
+python-dateutil>=2.8.2
+
+# Machine Learning & Scientific Pipeline Inference
+numpy>=1.24.0
+pandas>=2.0.0
+scipy>=1.10.0
+scikit-learn>=1.3.0
+joblib>=1.3.0
+lightgbm>=4.0.0
+xgboost>=2.0.0
+
+
+
+# ds
+
+# Scientific Satellite Format Support (NetCDF4 & HDF5 for Sentinel-5P / ERA5)
+netCDF4>=1.6.5
+cftime>=1.6.2
+h5py>=3.10.0

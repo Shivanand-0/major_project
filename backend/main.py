@@ -187,6 +187,9 @@ async def get_hcho_summary():
             data["correlation"] = corr_data.get("statistical_correlation", {})
             data["wind_transport"] = corr_data.get("wind_transport_analysis", {})
     
+    if "top_clusters" in data and "dbscan_clusters" not in data:
+        data["dbscan_clusters"] = {"top_clusters": data["top_clusters"]}
+    
     return data
 
 

@@ -1,33 +1,33 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Air Quality Monitor — Vidarbha Region Live Air Guide</title>
-    <meta name="description" content="Live air quality surveillance and spatiotemporal estimation across Vidarbha cities including Nagpur, Chandrapur, Amravati, and Akola.">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+    <link rel="stylesheet" href="/static/styles.css?v=3.0">
 
-    <!-- Modern Typography: Inter & Plus Jakarta Sans -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
-
-    <!-- Leaflet CSS for Geospatial Map -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-
-    <!-- Light Theme Stylesheet -->
-    <link rel="stylesheet" href="/static/styles.css">
 </head>
-<body class="light-theme">
+
+<body>
+
     <div class="app-wrapper">
         <!-- Top Navigation Bar -->
         <header class="app-header">
             <div class="header-container">
                 <div class="header-brand" id="brand-logo" role="button" tabindex="0">
                     <div class="brand-icon-box">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/>
-                            <path d="M12 6a6 6 0 0 0-6 6c0 2 1.5 3.5 3.5 3.5s3.5-1.5 3.5-3.5"/>
-                            <path d="M12 12c1.5 0 2.5-.5 3-1.5"/>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z">
+                            </path>
+                            <path d="M12 6a6 6 0 0 0-6 6c0 2 1.5 3.5 3.5 3.5s3.5-1.5 3.5-3.5"></path>
+                            <path d="M12 12c1.5 0 2.5-.5 3-1.5"></path>
                         </svg>
                     </div>
                     <div class="brand-text">
@@ -38,9 +38,12 @@
 
                 <!-- 3-Page Segmented Tab Switcher -->
                 <nav class="segmented-nav" aria-label="Page Selection">
-                    <button class="nav-segment-btn" id="tab-check-location" data-page="page-check-location">Check Location</button>
-                    <button class="nav-segment-btn active" id="tab-popular-cities" data-page="page-popular-cities">Popular Cities</button>
-                    <button class="nav-segment-btn" id="tab-pan-india-hcho" data-page="page-pan-india-hcho">🛰️ Pan-India HCHO Hotspots</button>
+                    <button class="nav-segment-btn active" id="tab-check-location" data-page="page-check-location">Check
+                        Location</button>
+                    <button class="nav-segment-btn" id="tab-popular-cities" data-page="page-popular-cities">Popular
+                        Cities</button>
+                    <button class="nav-segment-btn" id="tab-pan-india-hcho" data-page="page-pan-india-hcho">🛰️
+                        Pan-India HCHO Hotspots</button>
                 </nav>
 
                 <div class="header-actions">
@@ -49,9 +52,10 @@
                         <span class="live-text" id="header-time-text">Live Synced</span>
                     </div>
                     <div class="user-avatar-btn" title="Civic Air Monitor Profile">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#047857" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                            <circle cx="12" cy="7" r="4"/>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#047857" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
                         </svg>
                     </div>
                 </div>
@@ -63,27 +67,34 @@
             <!-- =================================================================== -->
             <!-- PAGE 1: CHECK LOCATION (Interactive Map & Coordinate Inspector)    -->
             <!-- =================================================================== -->
-            <section id="page-check-location" class="page-view hidden">
+            <section id="page-check-location" class="page-view">
                 <div class="page-header">
                     <div class="hero-badge">
                         <span class="live-dot pulse"></span>
                         <span>Live Vidarbha Regional Sensor Grid</span>
                     </div>
                     <h1 class="page-title">Check Local Air Quality</h1>
-                    <p class="page-subtitle">Enter your village, district, or landmarks across Eastern Maharashtra for instant, easy-to-understand health advisories.</p>
+                    <p class="page-subtitle">Across Eastern Maharashtra for instant, easy-to-understand health
+                        advisories.</p>
+                    <br>
 
                     <!-- Search Input Bar -->
                     <form id="search-form" class="search-bar-wrapper">
                         <div class="search-input-box">
-                            <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="11" cy="11" r="8"/>
-                                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                            <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                             </svg>
-                            <input type="text" id="location-search-input" placeholder="Enter landmark, district, or coordinates (e.g., Nagpur Central, 21.1458, 79.0882)" value="Nagpur Central" autocomplete="off">
+                            <input type="text" id="location-search-input"
+                                placeholder="Enter landmark, district, or coordinates (e.g., Nagpur Central, 21.1458, 79.0882)"
+                                autocomplete="off">
                         </div>
                         <button type="submit" id="search-submit-btn" class="btn-check-aqi">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <path d="m21 21-4.35-4.35"></path>
                             </svg>
                             <span>Check Air Quality</span>
                         </button>
@@ -92,14 +103,22 @@
                     <!-- Quick Lookups Row -->
                     <div class="quick-lookups">
                         <span class="quick-label">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                                <polyline points="16 7 22 7 22 13"></polyline>
+                            </svg>
                             Quick Lookups:
                         </span>
                         <div class="lookup-chips">
-                            <button type="button" class="lookup-chip" data-city="nagpur"><span class="chip-dot dot-good"></span> Nagpur Central</button>
-                            <button type="button" class="lookup-chip" data-city="chandrapur"><span class="chip-dot dot-mod"></span> Chandrapur City</button>
-                            <button type="button" class="lookup-chip" data-city="amravati"><span class="chip-dot dot-good"></span> Amravati Camp</button>
-                            <button type="button" class="lookup-chip" data-city="akola"><span class="chip-dot dot-mod"></span> Akola Industrial</button>
+                            <button type="button" class="lookup-chip" data-city="nagpur"><span
+                                    class="chip-dot dot-good"></span> Nagpur Central</button>
+                            <button type="button" class="lookup-chip" data-city="chandrapur"><span
+                                    class="chip-dot dot-mod"></span> Chandrapur City</button>
+                            <button type="button" class="lookup-chip" data-city="amravati"><span
+                                    class="chip-dot dot-good"></span> Amravati Camp</button>
+                            <button type="button" class="lookup-chip" data-city="akola"><span
+                                    class="chip-dot dot-mod"></span> Akola Industrial</button>
                         </div>
                     </div>
                 </div>
@@ -111,10 +130,16 @@
                         <div class="card-inner-header">
                             <div>
                                 <h2 class="card-title-lg">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669"
+                                        stroke-width="2">
+                                        <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z">
+                                        </path>
+                                        <circle cx="12" cy="10" r="3"></circle>
+                                    </svg>
                                     Tap Anywhere on the Map
                                 </h2>
-                                <p class="card-desc">Click on any point in Vidarbha to see local air quality instantly.</p>
+                                <p class="card-desc">Click on any point in Vidarbha to see local air quality instantly.
+                                </p>
                             </div>
                             <span class="sync-tag-live">
                                 <span class="live-dot pulse"></span>
@@ -132,7 +157,15 @@
 
                             <!-- Locate Me Floating Button -->
                             <button id="btn-locate-me" class="btn-floating-locate" title="Center to My Location">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                    <line x1="12" y1="2" x2="12" y2="6"></line>
+                                    <line x1="12" y1="18" x2="12" y2="22"></line>
+                                    <line x1="2" y1="12" x2="6" y2="12"></line>
+                                    <line x1="18" y1="12" x2="22" y2="12"></line>
+                                </svg>
                                 <span>Locate Me</span>
                             </button>
 
@@ -142,7 +175,8 @@
                             <div class="map-bottom-legend">
                                 <span class="legend-title">AQI Scale:</span>
                                 <span class="legend-item"><span class="color-bullet good"></span> 0–50 Good</span>
-                                <span class="legend-item"><span class="color-bullet sat"></span> 51–100 Satisfactory</span>
+                                <span class="legend-item"><span class="color-bullet sat"></span> 51–100
+                                    Satisfactory</span>
                                 <span class="legend-item"><span class="color-bullet mod"></span> 101–200 Moderate</span>
                                 <span class="legend-note">· Tap anywhere on grid to sample</span>
                             </div>
@@ -151,14 +185,25 @@
                         <!-- Station Status Strip Below Map -->
                         <div class="station-status-strip" id="station-status-card">
                             <div class="station-icon-wrap">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><path d="M4.9 19.1A10 10 0 0 1 2 12C2 6.5 6.5 2 12 2s10 4.5 10 10c0 2.6-1 5-2.9 7.1"/><path d="M7.8 16.2A6 6 0 0 1 6 12a6 6 0 0 1 12 0c0 1.6-.6 3.1-1.8 4.2"/><circle cx="12" cy="12" r="2"/></svg>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669"
+                                    stroke-width="2">
+                                    <path
+                                        d="M4.9 19.1A10 10 0 0 1 2 12C2 6.5 6.5 2 12 2s10 4.5 10 10c0 2.6-1 5-2.9 7.1">
+                                    </path>
+                                    <path d="M7.8 16.2A6 6 0 0 1 6 12a6 6 0 0 1 12 0c0 1.6-.6 3.1-1.8 4.2"></path>
+                                    <circle cx="12" cy="12" r="2"></circle>
+                                </svg>
                             </div>
                             <div class="station-details">
                                 <div class="station-name-line" id="station-name-text">Civil Lines Station #04</div>
-                                <div class="station-sub-line" id="station-sub-text">CPCB & Maharashtra Pollution Control Board verified station</div>
+                                <div class="station-sub-line" id="station-sub-text">CPCB &amp; Maharashtra Pollution
+                                    Control Board verified station</div>
                             </div>
                             <div class="station-meta-badge" id="station-updated-text">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669"
+                                    stroke-width="2.5">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
                                 <span id="station-time-str">Updated Live IST</span>
                             </div>
                         </div>
@@ -169,9 +214,15 @@
                         <div class="reading-card">
                             <div class="reading-header">
                                 <span class="reading-badge-tag">REAL-TIME READING</span>
-                                <h2 class="reading-title" id="reading-city-title">Current Air Quality in Nagpur Area</h2>
+                                <h2 class="reading-title" id="reading-city-title">Current Air Quality in Nagpur Area
+                                </h2>
                                 <div class="reading-coords-line">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b"
+                                        stroke-width="2">
+                                        <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z">
+                                        </path>
+                                        <circle cx="12" cy="10" r="3"></circle>
+                                    </svg>
                                     <span id="reading-point-coords">Selected Point: 21.1458° N, 79.0882° E</span>
                                 </div>
                             </div>
@@ -184,21 +235,30 @@
                                 </div>
                                 <div class="aqi-category-container">
                                     <div class="cat-pill satisfactory" id="reading-cat-pill">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2.5">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
                                         <span id="reading-cat-name">Satisfactory</span>
                                     </div>
-                                    <span class="cat-guidance-sub" id="reading-cat-sub">Safe for everyday activities</span>
+                                    <span class="cat-guidance-sub" id="reading-cat-sub">Safe for everyday
+                                        activities</span>
                                 </div>
                             </div>
 
                             <!-- Health & Activity Guidance Block -->
                             <div class="guidance-banner" id="guidance-banner">
                                 <div class="guidance-icon-box">
-                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#047857" stroke-width="2.2"><circle cx="12" cy="5" r="2"/><path d="m15 22-3-8 3-5-6-2-2 4 4 1-2 10"/></svg>
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#047857"
+                                        stroke-width="2.2">
+                                        <circle cx="12" cy="5" r="2"></circle>
+                                        <path d="m15 22-3-8 3-5-6-2-2 4 4 1-2 10"></path>
+                                    </svg>
                                 </div>
                                 <div class="guidance-content">
-                                    <div class="guidance-title">Health & Activity Guidance</div>
-                                    <p class="guidance-text" id="reading-guidance-text">Air quality is good. Great day for outdoor activities, walking, and opening windows!</p>
+                                    <div class="guidance-title">Health &amp; Activity Guidance</div>
+                                    <p class="guidance-text" id="reading-guidance-text">Air quality is good. Great day
+                                        for outdoor activities, walking, and opening windows!</p>
                                 </div>
                             </div>
 
@@ -210,7 +270,7 @@
                                         <span class="metric-emoji">🌡️</span>
                                     </div>
                                     <div class="metric-val" id="metric-temp">32°C</div>
-                                    <div class="metric-hint" id="metric-temp-hint">Warm & Sunny</div>
+                                    <div class="metric-hint" id="metric-temp-hint">Warm &amp; Sunny</div>
                                 </div>
 
                                 <div class="metric-card">
@@ -227,7 +287,7 @@
                                         <span class="metric-label">Main Pollutant</span>
                                         <span class="metric-emoji">〰️</span>
                                     </div>
-                                    <div class="metric-val" id="metric-pollutant">Dust & PM2.5</div>
+                                    <div class="metric-val" id="metric-pollutant">Dust &amp; PM2.5</div>
                                     <div class="metric-hint" id="metric-pollutant-hint">Low particulate level</div>
                                 </div>
                             </div>
@@ -235,11 +295,21 @@
                             <!-- Action Buttons -->
                             <div class="reading-actions">
                                 <button type="button" id="btn-save-location" class="btn-action-primary">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path>
+                                    </svg>
                                     <span>Save Location</span>
                                 </button>
                                 <button type="button" id="btn-share-report" class="btn-action-secondary">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <circle cx="18" cy="5" r="3"></circle>
+                                        <circle cx="6" cy="12" r="3"></circle>
+                                        <circle cx="18" cy="19" r="3"></circle>
+                                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                                        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                                    </svg>
                                     <span>Share Report</span>
                                 </button>
                             </div>
@@ -248,11 +318,18 @@
                         <!-- Seasonal Vidarbha Advisory Card -->
                         <div class="seasonal-advisory-card">
                             <div class="seasonal-icon">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669"
+                                    stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                </svg>
                             </div>
                             <div class="seasonal-body">
                                 <span class="seasonal-title">Seasonal Vidarbha Advisory:</span>
-                                <p class="seasonal-text">Post-harvest agrarian thermal winds often concentrate surface particulates between 12:00 PM and 3:30 PM. Plan heavy agricultural and athletic activity before 10:00 AM.</p>
+                                <p class="seasonal-text">Post-harvest agrarian thermal winds often concentrate surface
+                                    particulates between 12:00 PM and 3:30 PM. Plan heavy agricultural and athletic
+                                    activity before 10:00 AM.</p>
                             </div>
                         </div>
                     </div>
@@ -262,15 +339,20 @@
             <!-- =================================================================== -->
             <!-- PAGE 2: POPULAR CITIES (Regional Grid, Cards & Knowledge Base)     -->
             <!-- =================================================================== -->
-            <section id="page-popular-cities" class="page-view">
+            <section id="page-popular-cities" class="page-view hidden">
                 <div class="page-header-row">
                     <div>
                         <div class="section-tag-row">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.2"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669"
+                                stroke-width="2.2">
+                                <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"></path>
+                                <circle cx="12" cy="10" r="3"></circle>
+                            </svg>
                             <span>REGIONAL SURVEILLANCE</span>
                         </div>
                         <h1 class="page-title">Air Quality Across Popular Vidarbha Cities</h1>
-                        <p class="page-subtitle">Current live air readings and simple health advice for major urban centers in the region.</p>
+                        <p class="page-subtitle">Current live air readings and simple health advice for major urban
+                            centers in the region.</p>
                     </div>
 
                     <div class="status-pill-synced">
@@ -282,13 +364,18 @@
                 <!-- 2x2 Cities Grid (Nagpur, Chandrapur, Amravati, Akola) -->
                 <div class="cities-grid" id="cities-grid-container">
                     <!-- Cards are rendered dynamically from /api/nodes and have fallback templates below -->
-                    
+
                     <!-- Card 1: Nagpur -->
                     <div class="city-card" id="card-nagpur">
                         <div class="city-card-top">
                             <div class="city-info-block">
                                 <div class="city-pin-icon">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669"
+                                        stroke-width="2.5">
+                                        <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z">
+                                        </path>
+                                        <circle cx="12" cy="10" r="3"></circle>
+                                    </svg>
                                 </div>
                                 <div>
                                     <h3 class="city-name">Nagpur</h3>
@@ -302,21 +389,33 @@
                         </div>
 
                         <div class="city-advice-quote moderate" id="quote-nagpur">
-                            <b>Air Quality: Moderate (117)</b> — Sensitive individuals should consider reducing prolonged outdoor exertion.
+                            <b>Air Quality: Moderate (117)</b> — Sensitive individuals should consider reducing
+                            prolonged outdoor exertion.
                         </div>
 
                         <div class="city-stats-row">
                             <div class="stat-col">
-                                <span class="stat-lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg> Temperature</span>
+                                <span class="stat-lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor">
+                                        <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"></path>
+                                    </svg> Temperature</span>
                                 <span class="stat-main" id="stat-temp-nagpur">34°C</span>
                             </div>
                             <div class="stat-col">
-                                <span class="stat-lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg> Air Speed</span>
+                                <span class="stat-lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor">
+                                        <path
+                                            d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2">
+                                        </path>
+                                    </svg> Air Speed</span>
                                 <span class="stat-main" id="stat-wind-nagpur">8 km/h</span>
                                 <span class="stat-sub">Gentle Breeze</span>
                             </div>
                             <div class="stat-col">
-                                <span class="stat-lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Status</span>
+                                <span class="stat-lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor">
+                                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                    </svg> Status</span>
                                 <span class="stat-main text-emerald" id="stat-status-nagpur">Normal OK</span>
                                 <span class="stat-sub text-emerald">Safe outdoors</span>
                             </div>
@@ -324,7 +423,11 @@
 
                         <button class="btn-card-forecast" data-city="nagpur" data-lat="21.1458" data-lon="79.0882">
                             <span>View Detailed Forecast</span>
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.2">
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                                <polyline points="12 5 19 12 12 19"></polyline>
+                            </svg>
                         </button>
                     </div>
 
@@ -333,7 +436,12 @@
                         <div class="city-card-top">
                             <div class="city-info-block">
                                 <div class="city-pin-icon">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669"
+                                        stroke-width="2.5">
+                                        <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z">
+                                        </path>
+                                        <circle cx="12" cy="10" r="3"></circle>
+                                    </svg>
                                 </div>
                                 <div>
                                     <h3 class="city-name">Chandrapur</h3>
@@ -347,21 +455,33 @@
                         </div>
 
                         <div class="city-advice-quote moderate" id="quote-chandrapur">
-                            <b>Air Quality: Moderate (142)</b> — Noticeable haze near industrial areas. Mask recommended for prolonged outdoor work.
+                            <b>Air Quality: Moderate (142)</b> — Noticeable haze near industrial areas. Mask recommended
+                            for prolonged outdoor work.
                         </div>
 
                         <div class="city-stats-row">
                             <div class="stat-col">
-                                <span class="stat-lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg> Temperature</span>
+                                <span class="stat-lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor">
+                                        <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"></path>
+                                    </svg> Temperature</span>
                                 <span class="stat-main" id="stat-temp-chandrapur">35°C</span>
                             </div>
                             <div class="stat-col">
-                                <span class="stat-lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg> Air Speed</span>
+                                <span class="stat-lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor">
+                                        <path
+                                            d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2">
+                                        </path>
+                                    </svg> Air Speed</span>
                                 <span class="stat-main" id="stat-wind-chandrapur">5 km/h</span>
                                 <span class="stat-sub">Light Wind</span>
                             </div>
                             <div class="stat-col">
-                                <span class="stat-lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Status</span>
+                                <span class="stat-lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor">
+                                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                    </svg> Status</span>
                                 <span class="stat-main text-amber" id="stat-status-chandrapur">Use Mask</span>
                                 <span class="stat-sub text-amber">If sensitive</span>
                             </div>
@@ -369,7 +489,11 @@
 
                         <button class="btn-card-forecast" data-city="chandrapur" data-lat="19.9615" data-lon="79.2961">
                             <span>View Detailed Forecast</span>
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.2">
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                                <polyline points="12 5 19 12 12 19"></polyline>
+                            </svg>
                         </button>
                     </div>
 
@@ -378,7 +502,12 @@
                         <div class="city-card-top">
                             <div class="city-info-block">
                                 <div class="city-pin-icon">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669"
+                                        stroke-width="2.5">
+                                        <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z">
+                                        </path>
+                                        <circle cx="12" cy="10" r="3"></circle>
+                                    </svg>
                                 </div>
                                 <div>
                                     <h3 class="city-name">Amravati</h3>
@@ -392,29 +521,46 @@
                         </div>
 
                         <div class="city-advice-quote satisfactory" id="quote-amravati">
-                            <b>Air Quality: Satisfactory (92)</b> — Clean and fresh air. Perfect for morning jogs, sports, and outdoor activities.
+                            <b>Air Quality: Satisfactory (92)</b> — Clean and fresh air. Perfect for morning jogs,
+                            sports, and outdoor activities.
                         </div>
 
                         <div class="city-stats-row">
                             <div class="stat-col">
-                                <span class="stat-lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg> Temperature</span>
+                                <span class="stat-lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor">
+                                        <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"></path>
+                                    </svg> Temperature</span>
                                 <span class="stat-main" id="stat-temp-amravati">31°C</span>
                             </div>
                             <div class="stat-col">
-                                <span class="stat-lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg> Air Speed</span>
+                                <span class="stat-lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor">
+                                        <path
+                                            d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2">
+                                        </path>
+                                    </svg> Air Speed</span>
                                 <span class="stat-main" id="stat-wind-amravati">11 km/h</span>
                                 <span class="stat-sub">Moderate Breeze</span>
                             </div>
                             <div class="stat-col">
-                                <span class="stat-lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Status</span>
+                                <span class="stat-lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor">
+                                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                    </svg> Status</span>
                                 <span class="stat-main text-emerald" id="stat-status-amravati">Ideal Air</span>
                                 <span class="stat-sub text-emerald">Great outdoor run</span>
                             </div>
                         </div>
 
-                        <button class="btn-card-forecast btn-emerald" data-city="amravati" data-lat="20.9374" data-lon="77.7796">
+                        <button class="btn-card-forecast btn-emerald" data-city="amravati" data-lat="20.9374"
+                            data-lon="77.7796">
                             <span>View Detailed Forecast</span>
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.2">
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                                <polyline points="12 5 19 12 12 19"></polyline>
+                            </svg>
                         </button>
                     </div>
 
@@ -423,7 +569,12 @@
                         <div class="city-card-top">
                             <div class="city-info-block">
                                 <div class="city-pin-icon">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669"
+                                        stroke-width="2.5">
+                                        <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z">
+                                        </path>
+                                        <circle cx="12" cy="10" r="3"></circle>
+                                    </svg>
                                 </div>
                                 <div>
                                     <h3 class="city-name">Akola</h3>
@@ -442,24 +593,40 @@
 
                         <div class="city-stats-row">
                             <div class="stat-col">
-                                <span class="stat-lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg> Temperature</span>
+                                <span class="stat-lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor">
+                                        <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"></path>
+                                    </svg> Temperature</span>
                                 <span class="stat-main" id="stat-temp-akola">33°C</span>
                             </div>
                             <div class="stat-col">
-                                <span class="stat-lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg> Air Speed</span>
+                                <span class="stat-lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor">
+                                        <path
+                                            d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2">
+                                        </path>
+                                    </svg> Air Speed</span>
                                 <span class="stat-main" id="stat-wind-akola">7 km/h</span>
                                 <span class="stat-sub">Light Air</span>
                             </div>
                             <div class="stat-col">
-                                <span class="stat-lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Status</span>
+                                <span class="stat-lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor">
+                                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                    </svg> Status</span>
                                 <span class="stat-main text-emerald" id="stat-status-akola">Great Quality</span>
                                 <span class="stat-sub text-emerald">Optimal health</span>
                             </div>
                         </div>
 
-                        <button class="btn-card-forecast btn-emerald" data-city="akola" data-lat="20.7002" data-lon="77.0082">
+                        <button class="btn-card-forecast btn-emerald" data-city="akola" data-lat="20.7002"
+                            data-lon="77.0082">
                             <span>View Detailed Forecast</span>
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.2">
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                                <polyline points="12 5 19 12 12 19"></polyline>
+                            </svg>
                         </button>
                     </div>
                 </div>
@@ -468,23 +635,37 @@
                 <div class="insights-grid">
                     <div class="insight-card">
                         <div class="insight-thumb thumb-green">
-                            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#047857" stroke-width="1.8"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
+                            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#047857"
+                                stroke-width="1.8">
+                                <path
+                                    d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z">
+                                </path>
+                                <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"></path>
+                            </svg>
                         </div>
                         <div class="insight-text">
-                            <span class="insight-category text-emerald">NAGPUR & AMRAVATI BELT</span>
+                            <span class="insight-category text-emerald">NAGPUR &amp; AMRAVATI BELT</span>
                             <h3 class="insight-title">Green Buffer Zone</h3>
-                            <p class="insight-desc">Dense urban tree coverage and regional agricultural belts maintain lower particulate counts through natural canopy filtration and canopy dispersion.</p>
+                            <p class="insight-desc">Dense urban tree coverage and regional agricultural belts maintain
+                                lower particulate counts through natural canopy filtration and canopy dispersion.</p>
                         </div>
                     </div>
 
                     <div class="insight-card">
                         <div class="insight-thumb thumb-orange">
-                            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#c2410c" stroke-width="1.8"><path d="M6 22V10l7-5v7l5-3v13H6z"/><path d="M18 14h2a2 2 0 0 1 2 2v6h-4v-8z"/><line x1="10" y1="14" x2="10" y2="14.01"/><line x1="10" y1="18" x2="10" y2="18.01"/></svg>
+                            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#c2410c"
+                                stroke-width="1.8">
+                                <path d="M6 22V10l7-5v7l5-3v13H6z"></path>
+                                <path d="M18 14h2a2 2 0 0 1 2 2v6h-4v-8z"></path>
+                                <line x1="10" y1="14" x2="10" y2="14.01"></line>
+                                <line x1="10" y1="18" x2="10" y2="18.01"></line>
+                            </svg>
                         </div>
                         <div class="insight-text">
                             <span class="insight-category text-amber">INDUSTRIAL CORRIDORS</span>
                             <h3 class="insight-title">Chandrapur Thermal Ring</h3>
-                            <p class="insight-desc">Higher localized PM2.5 readings are consistently detected along mining and power generation arteries during thermal inversion periods.</p>
+                            <p class="insight-desc">Higher localized PM2.5 readings are consistently detected along
+                                mining and power generation arteries during thermal inversion periods.</p>
                         </div>
                     </div>
                 </div>
@@ -494,10 +675,14 @@
                     <div class="guide-header-row">
                         <div>
                             <h2 class="guide-main-title">How to Understand Air Quality Numbers</h2>
-                            <p class="guide-main-sub">Simple guidelines designed to help you plan outdoor activities safely every day.</p>
+                            <p class="guide-main-sub">Simple guidelines designed to help you plan outdoor activities
+                                safely every day.</p>
                         </div>
                         <div class="guide-verified-badge">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669"
+                                stroke-width="2.5">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
                             <span>Based on National AQI Index</span>
                         </div>
                     </div>
@@ -517,7 +702,8 @@
                                 <span class="scale-badge-num bg-good-tint text-good">✓ 0 – 100</span>
                                 <h4 class="scale-card-name">Good / Satisfactory</h4>
                             </div>
-                            <p class="scale-card-desc">Clean air, safe for everyone. Ideal for jogging, outdoor sports, and open windows.</p>
+                            <p class="scale-card-desc">Clean air, safe for everyone. Ideal for jogging, outdoor sports,
+                                and open windows.</p>
                             <div class="scale-card-footer text-good">
                                 <span>🌿 No precautions needed</span>
                             </div>
@@ -528,7 +714,8 @@
                                 <span class="scale-badge-num bg-mod-tint text-mod">⚠️ 101 – 200</span>
                                 <h4 class="scale-card-name">Moderate</h4>
                             </div>
-                            <p class="scale-card-desc">Acceptable air quality. Slight risk or breathing difficulty for sensitive groups.</p>
+                            <p class="scale-card-desc">Acceptable air quality. Slight risk or breathing difficulty for
+                                sensitive groups.</p>
                             <div class="scale-card-footer text-mod">
                                 <span>🛡️ Sensitive people rest more</span>
                             </div>
@@ -539,7 +726,8 @@
                                 <span class="scale-badge-num bg-poor-tint text-poor">⚠️ 201 – 300</span>
                                 <h4 class="scale-card-name">Poor</h4>
                             </div>
-                            <p class="scale-card-desc">Breathing discomfort possible for most people. Wear a mask for prolonged outdoor work.</p>
+                            <p class="scale-card-desc">Breathing discomfort possible for most people. Wear a mask for
+                                prolonged outdoor work.</p>
                             <div class="scale-card-footer text-poor">
                                 <span>😷 Face mask suggested</span>
                             </div>
@@ -550,7 +738,8 @@
                                 <span class="scale-badge-num bg-severe-tint text-severe">🚫 301+</span>
                                 <h4 class="scale-card-name">Unhealthy / Severe</h4>
                             </div>
-                            <p class="scale-card-desc">Harmful air for all residents. Stay indoors, keep windows closed, and run air purifiers.</p>
+                            <p class="scale-card-desc">Harmful air for all residents. Stay indoors, keep windows closed,
+                                and run air purifiers.</p>
                             <div class="scale-card-footer text-severe">
                                 <span>🚪 Stay indoors safely</span>
                             </div>
@@ -566,16 +755,22 @@
                 <div class="page-header-row">
                     <div>
                         <div class="section-tag-row">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
-                            <span>SATELLITE REMOTE SENSING & ATMOSPHERIC CHEMISTRY</span>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669"
+                                stroke-width="2.2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path>
+                                <path d="M2 12h20"></path>
+                            </svg>
+                            <span>SATELLITE REMOTE SENSING &amp; ATMOSPHERIC CHEMISTRY</span>
                         </div>
-                        <h1 class="page-title">Pan-India HCHO Hotspots & Biomass Burning Surveillance</h1>
-                        <p class="page-subtitle">Sentinel-5P TROPOMI tropospheric formaldehyde (HCHO) observations mapped with NASA VIIRS/MODIS active fires and ECMWF ERA5 wind transport dispersion.</p>
+                        <h1 class="page-title">Pan-India HCHO Hotspots &amp; Biomass Burning Surveillance</h1>
+                        <p class="page-subtitle">Sentinel-5P TROPOMI tropospheric formaldehyde (HCHO) observations
+                            mapped with NASA VIIRS/MODIS active fires and ECMWF ERA5 wind transport dispersion.</p>
                     </div>
 
                     <div class="status-pill-synced">
                         <span class="live-dot pulse"></span>
-                        <span>Satellite & ERA5 Synced · India Domain</span>
+                        <span>Satellite &amp; ERA5 Synced · India Domain</span>
                     </div>
                 </div>
 
@@ -586,7 +781,7 @@
                         <div class="hcho-kpi-meta">
                             <span class="hcho-kpi-label">NASA Active Fires</span>
                             <span class="hcho-kpi-val" id="hcho-kpi-fires">5,702</span>
-                            <span class="hcho-kpi-sub">VIIRS 375m & MODIS C6.1</span>
+                            <span class="hcho-kpi-sub">VIIRS 375m &amp; MODIS C6.1</span>
                         </div>
                     </div>
 
@@ -625,28 +820,44 @@
                         <div class="card-inner-header">
                             <div>
                                 <h2 class="card-title-lg">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/></svg>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669"
+                                        stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <path d="m4.93 4.93 4.24 4.24"></path>
+                                        <path d="m14.83 9.17 4.24-4.24"></path>
+                                        <path d="m14.83 14.83 4.24 4.24"></path>
+                                        <path d="m9.17 14.83-4.24 4.24"></path>
+                                    </svg>
                                     Geospatial Hotspot Map (Whole India Domain)
                                 </h2>
-                                <p class="card-desc">Click anywhere across India to sample instantaneous HCHO, active fire proximity, and ERA5 wind vectors.</p>
+                                <p class="card-desc">Click anywhere across India to sample instantaneous HCHO, active
+                                    fire proximity, and ERA5 wind vectors.</p>
                             </div>
 
                             <!-- Map Region Quick-Zoom & Layer Controls -->
                             <div class="hcho-map-controls">
-                                <button id="btn-zoom-india" class="glass-pill-btn active" title="Reset View to Whole India">Whole India</button>
-                                <button id="btn-zoom-igp" class="glass-pill-btn" title="Focus Indo-Gangetic Basin (Punjab & UP)">Punjab / IGP</button>
-                                <button id="btn-zoom-central" class="glass-pill-btn" title="Focus Central India Forest Corridor">Central Vidarbha</button>
-                                <button id="btn-zoom-ne" class="glass-pill-btn" title="Focus Northeast Shifting Cultivation">Northeast</button>
+                                <button id="btn-zoom-india" class="glass-pill-btn active"
+                                    title="Reset View to Whole India">Whole India</button>
+                                <button id="btn-zoom-igp" class="glass-pill-btn"
+                                    title="Focus Indo-Gangetic Basin (Punjab &amp; UP)">Punjab / IGP</button>
+                                <button id="btn-zoom-central" class="glass-pill-btn"
+                                    title="Focus Central India Forest Corridor">Central Vidarbha</button>
+                                <button id="btn-zoom-ne" class="glass-pill-btn"
+                                    title="Focus Northeast Shifting Cultivation">Northeast</button>
                             </div>
                         </div>
 
                         <!-- Layer Toggle Strip -->
                         <div class="layer-toggle-strip">
                             <span class="layer-strip-title">Layer Toggles:</span>
-                            <button id="toggle-layer-fires" class="layer-pill-btn active"><span class="pill-dot dot-fire"></span> 🔥 Active Fires (VIIRS)</button>
-                            <button id="toggle-layer-hotspots" class="layer-pill-btn active"><span class="pill-dot dot-hotspot"></span> 🎯 Getis-Ord Gi* Hotspots</button>
-                            <button id="toggle-layer-wind" class="layer-pill-btn active"><span class="pill-dot dot-wind"></span> 💨 ERA5 Wind Vectors</button>
-                            <button id="toggle-layer-clusters" class="layer-pill-btn active"><span class="pill-dot dot-cluster"></span> 🏷️ DBSCAN Plume Clusters</button>
+                            <button id="toggle-layer-fires" class="layer-pill-btn active"><span
+                                    class="pill-dot dot-fire"></span> 🔥 Active Fires (VIIRS)</button>
+                            <button id="toggle-layer-hotspots" class="layer-pill-btn active"><span
+                                    class="pill-dot dot-hotspot"></span> 🎯 Getis-Ord Gi* Hotspots</button>
+                            <button id="toggle-layer-wind" class="layer-pill-btn active"><span
+                                    class="pill-dot dot-wind"></span> 💨 ERA5 Wind Vectors</button>
+                            <button id="toggle-layer-clusters" class="layer-pill-btn active"><span
+                                    class="pill-dot dot-cluster"></span> 🏷️ DBSCAN Plume Clusters</button>
                         </div>
 
                         <!-- Map Canvas -->
@@ -656,10 +867,14 @@
                             <!-- Map Bottom Legend -->
                             <div class="map-bottom-legend hcho-legend">
                                 <span class="legend-title">Hotspot Gi* Z-Score:</span>
-                                <span class="legend-item"><span class="color-bullet" style="background:#dc2626;"></span> 99% Conf (Z &gt; 2.58)</span>
-                                <span class="legend-item"><span class="color-bullet" style="background:#ea580c;"></span> 95% Conf (Z &gt; 1.96)</span>
-                                <span class="legend-item"><span class="color-bullet" style="background:#f59e0b;"></span> 90% Conf (Z &gt; 1.65)</span>
-                                <span class="legend-item"><span class="color-bullet" style="background:#ef4444;"></span> 🔥 Active Fire Point</span>
+                                <span class="legend-item"><span class="color-bullet" style="background:#dc2626;"></span>
+                                    99% Conf (Z &gt; 2.58)</span>
+                                <span class="legend-item"><span class="color-bullet" style="background:#ea580c;"></span>
+                                    95% Conf (Z &gt; 1.96)</span>
+                                <span class="legend-item"><span class="color-bullet" style="background:#f59e0b;"></span>
+                                    90% Conf (Z &gt; 1.65)</span>
+                                <span class="legend-item"><span class="color-bullet" style="background:#ef4444;"></span>
+                                    🔥 Active Fire Point</span>
                                 <span class="legend-note">· Click map to inspect</span>
                             </div>
                         </div>
@@ -673,7 +888,12 @@
                                 <span class="reading-badge-tag">INTERACTIVE SAMPLER</span>
                                 <h3 class="inspector-title" id="hcho-insp-title">Selected Location (India)</h3>
                                 <div class="reading-coords-line">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b"
+                                        stroke-width="2">
+                                        <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z">
+                                        </path>
+                                        <circle cx="12" cy="10" r="3"></circle>
+                                    </svg>
                                     <span id="hcho-insp-coords">22.4150° N, 77.7812° E</span>
                                 </div>
                             </div>
@@ -719,136 +939,168 @@
                     </div>
                 </div>
 
-                <!-- Scientific Correlation & Transport Analysis Dashboard Grid -->
-                <div class="correlation-cards-grid">
-                    <!-- Card 1: Bivariate Correlation & Regression Model -->
-                    <div class="corr-card">
-                        <div class="corr-card-head">
-                            <div class="corr-icon-box">📊</div>
-                            <div>
-                                <h3 class="corr-title">Bivariate Emission Correlation & Regression</h3>
-                                <span class="corr-subtitle">NASA VIIRS Fire Radiative Power (FRP) vs Sentinel-5P HCHO Column</span>
-                            </div>
-                        </div>
-                        <div class="corr-stats-row">
-                            <div class="corr-stat">
-                                <span class="c-lbl">Pearson Correlation</span>
-                                <span class="c-val text-emerald" id="corr-val-r">r = 0.735</span>
-                                <span class="c-sub">Statistically Significant (p &lt; 0.001)</span>
-                            </div>
-                            <div class="corr-stat">
-                                <span class="c-lbl">Spearman Rank Rho</span>
-                                <span class="c-val text-blue" id="corr-val-rho">ρ = 0.962</span>
-                                <span class="c-sub">Monotonic Non-Linear Fit</span>
-                            </div>
-                            <div class="corr-stat">
-                                <span class="c-lbl">OLS Regression R²</span>
-                                <span class="c-val text-purple" id="corr-val-r2">R² = 0.540</span>
-                                <span class="c-sub">54.0% Variance Explained</span>
-                            </div>
-                        </div>
-                        <p class="corr-desc">
-                            Formaldehyde (HCHO) is a direct intermediate product of volatile organic compound (VOC) photolysis emitted from high-temperature biomass combustion. The strong correlation (r = 0.735, ρ = 0.962) validates that satellite-observed formaldehyde spikes over India are directly driven by active fire radiative intensity.
-                        </p>
-                    </div>
-
-                    <!-- Card 2: ECMWF ERA5 Synoptic Wind Transport -->
-                    <div class="corr-card">
-                        <div class="corr-card-head">
-                            <div class="corr-icon-box">💨</div>
-                            <div>
-                                <h3 class="corr-title">ECMWF ERA5 Plume Transport Dynamics</h3>
-                                <span class="corr-subtitle">Advection along the Indo-Gangetic Basin to Bay of Bengal</span>
-                            </div>
-                        </div>
-                        <div class="corr-stats-row">
-                            <div class="corr-stat">
-                                <span class="c-lbl">Calm Layer Column (&lt;2.5 m/s)</span>
-                                <span class="c-val text-amber" id="transport-calm-val">2.20 × 10¹⁵</span>
-                                <span class="c-sub">Boundary Layer Stagnation</span>
-                            </div>
-                            <div class="corr-stat">
-                                <span class="c-lbl">Advection Flow (&gt;=4.0 m/s)</span>
-                                <span class="c-val text-blue" id="transport-wind-val">2.28 × 10¹⁵</span>
-                                <span class="c-sub">Downwind Dilution Corridor</span>
-                            </div>
-                            <div class="corr-stat">
-                                <span class="c-lbl">Dominant Transport Axis</span>
-                                <span class="c-val text-emerald">NW ➔ SE</span>
-                                <span class="c-sub">Punjab ➔ UP ➔ Bay of Bengal</span>
-                            </div>
-                        </div>
-                        <p class="corr-desc">
-                            Post-monsoon synoptic winds predominantly blow from northwest to southeast along the Indo-Gangetic trough. In calm, nocturnal inversion conditions, plumes accumulate near source farmlands and forest fringes, whereas persistent daytime northwesterly winds transport elevated HCHO concentrations downwind across Eastern India.
-                        </p>
-                    </div>
+                <!-- Expandable More Info Toggle Button Bar -->
+                <div class="more-info-toggle-wrapper">
+                    <button type="button" id="btn-toggle-hcho-details" class="btn-more-info" aria-expanded="false" aria-controls="hcho-scientific-details">
+                        <span class="more-info-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="16" x2="12" y2="12"></line>
+                                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                            </svg>
+                        </span>
+                        <span id="btn-more-info-text">More Info: View Atmospheric Analytics &amp; Regional Breakdown</span>
+                        <svg class="chevron-icon" id="btn-more-info-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
                 </div>
 
-                <!-- Regional Agro-Ecological Breakdown Table -->
-                <div class="regional-table-card">
-                    <div class="guide-header-row">
-                        <div>
-                            <h3 class="guide-main-title">Regional Agro-Ecological Burning Breakdown</h3>
-                            <p class="guide-main-sub">Comparative analysis of active fires, HCHO enhancements, and wind speeds across Indian ecological regions.</p>
+                <!-- Initially Hidden Container for Scientific Analytics -->
+                <div id="hcho-scientific-details" class="hcho-details-collapse hidden" style="display: none;">
+                    <!-- Scientific Correlation & Transport Analysis Dashboard Grid -->
+                    <div class="correlation-cards-grid">
+                        <!-- Card 1: Bivariate Correlation & Regression Model -->
+                        <div class="corr-card">
+                            <div class="corr-card-head">
+                                <div class="corr-icon-box">📊</div>
+                                <div>
+                                    <h3 class="corr-title">Bivariate Emission Correlation &amp; Regression</h3>
+                                    <span class="corr-subtitle">NASA VIIRS Fire Radiative Power (FRP) vs Sentinel-5P HCHO
+                                        Column</span>
+                                </div>
+                            </div>
+                            <div class="corr-stats-row">
+                                <div class="corr-stat">
+                                    <span class="c-lbl">Pearson Correlation</span>
+                                    <span class="c-val text-emerald" id="corr-val-r">r = 0.735</span>
+                                    <span class="c-sub">Statistically Significant (p &lt; 0.001)</span>
+                                </div>
+                                <div class="corr-stat">
+                                    <span class="c-lbl">Spearman Rank Rho</span>
+                                    <span class="c-val text-blue" id="corr-val-rho">ρ = 0.962</span>
+                                    <span class="c-sub">Monotonic Non-Linear Fit</span>
+                                </div>
+                                <div class="corr-stat">
+                                    <span class="c-lbl">OLS Regression R²</span>
+                                    <span class="c-val text-purple" id="corr-val-r2">R² = 0.540</span>
+                                    <span class="c-sub">54.0% Variance Explained</span>
+                                </div>
+                            </div>
+                            <p class="corr-desc">
+                                Formaldehyde (HCHO) is a direct intermediate product of volatile organic compound (VOC)
+                                photolysis emitted from high-temperature biomass combustion. The strong correlation (r =
+                                0.735, ρ = 0.962) validates that satellite-observed formaldehyde spikes over India are
+                                directly driven by active fire radiative intensity.
+                            </p>
                         </div>
-                        <span class="guide-verified-badge">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                            <span>Stratified Spatial Statistics</span>
-                        </span>
+
+                        <!-- Card 2: ECMWF ERA5 Synoptic Wind Transport -->
+                        <div class="corr-card">
+                            <div class="corr-card-head">
+                                <div class="corr-icon-box">💨</div>
+                                <div>
+                                    <h3 class="corr-title">ECMWF ERA5 Plume Transport Dynamics</h3>
+                                    <span class="corr-subtitle">Advection along the Indo-Gangetic Basin to Bay of
+                                        Bengal</span>
+                                </div>
+                            </div>
+                            <div class="corr-stats-row">
+                                <div class="corr-stat">
+                                    <span class="c-lbl">Calm Layer Column (&lt;2.5 m/s)</span>
+                                    <span class="c-val text-amber" id="transport-calm-val">2.20 × 10¹⁵</span>
+                                    <span class="c-sub">Boundary Layer Stagnation</span>
+                                </div>
+                                <div class="corr-stat">
+                                    <span class="c-lbl">Advection Flow (&gt;=4.0 m/s)</span>
+                                    <span class="c-val text-blue" id="transport-wind-val">2.28 × 10¹⁵</span>
+                                    <span class="c-sub">Downwind Dilution Corridor</span>
+                                </div>
+                                <div class="corr-stat">
+                                    <span class="c-lbl">Dominant Transport Axis</span>
+                                    <span class="c-val text-emerald">NW ➔ SE</span>
+                                    <span class="c-sub">Punjab ➔ UP ➔ Bay of Bengal</span>
+                                </div>
+                            </div>
+                            <p class="corr-desc">
+                                Post-monsoon synoptic winds predominantly blow from northwest to southeast along the
+                                Indo-Gangetic trough. In calm, nocturnal inversion conditions, plumes accumulate near source
+                                farmlands and forest fringes, whereas persistent daytime northwesterly winds transport
+                                elevated HCHO concentrations downwind across Eastern India.
+                            </p>
+                        </div>
                     </div>
 
-                    <div class="table-responsive">
-                        <table class="regional-hcho-table">
-                            <thead>
-                                <tr>
-                                    <th>Agro-Ecological Region</th>
-                                    <th>Active Fires</th>
-                                    <th>Total FRP (MW)</th>
-                                    <th>Mean HCHO (×10¹⁵ molec/cm²)</th>
-                                    <th>Peak HCHO (×10¹⁵)</th>
-                                    <th>Pearson r</th>
-                                    <th>Mean Wind (ERA5)</th>
-                                </tr>
-                            </thead>
-                            <tbody id="regional-table-body">
-                                <tr>
-                                    <td><b>Central India Deciduous Forest (Vidarbha/MP)</b></td>
-                                    <td>733</td>
-                                    <td>2,410.2 MW</td>
-                                    <td>2.63</td>
-                                    <td>12.4</td>
-                                    <td><span class="badge-r good">r = 0.887</span></td>
-                                    <td>3.26 m/s (NW)</td>
-                                </tr>
-                                <tr>
-                                    <td><b>Punjab-Haryana Agricultural Basin (Stubble)</b></td>
-                                    <td>689</td>
-                                    <td>2,198.5 MW</td>
-                                    <td>3.62</td>
-                                    <td>15.8</td>
-                                    <td><span class="badge-r good">r = 0.838</span></td>
-                                    <td>3.55 m/s (NW)</td>
-                                </tr>
-                                <tr>
-                                    <td><b>Central &amp; Eastern Indo-Gangetic Corridor</b></td>
-                                    <td>286</td>
-                                    <td>942.1 MW</td>
-                                    <td>2.37</td>
-                                    <td>8.9</td>
-                                    <td><span class="badge-r good">r = 0.982</span></td>
-                                    <td>3.22 m/s (WNW)</td>
-                                </tr>
-                                <tr>
-                                    <td><b>Northeast Highlands (Shifting Jhum Cultivation)</b></td>
-                                    <td>102</td>
-                                    <td>314.8 MW</td>
-                                    <td>3.85</td>
-                                    <td>11.2</td>
-                                    <td><span class="badge-r good">r = 0.764</span></td>
-                                    <td>2.45 m/s (NE)</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <!-- Regional Agro-Ecological Breakdown Table -->
+                    <div class="regional-table-card">
+                        <div class="guide-header-row">
+                            <div>
+                                <h3 class="guide-main-title">Regional Agro-Ecological Burning Breakdown</h3>
+                                <p class="guide-main-sub">Comparative analysis of active fires, HCHO enhancements, and wind
+                                    speeds across Indian ecological regions.</p>
+                            </div>
+                            <span class="guide-verified-badge">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669"
+                                    stroke-width="2.5">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                <span>Stratified Spatial Statistics</span>
+                            </span>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="regional-hcho-table">
+                                <thead>
+                                    <tr>
+                                        <th>Agro-Ecological Region</th>
+                                        <th>Active Fires</th>
+                                        <th>Total FRP (MW)</th>
+                                        <th>Mean HCHO (×10¹⁵ molec/cm²)</th>
+                                        <th>Peak HCHO (×10¹⁵)</th>
+                                        <th>Pearson r</th>
+                                        <th>Mean Wind (ERA5)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="regional-table-body">
+                                    <tr>
+                                        <td><b>Central India Deciduous Forest (Vidarbha/MP)</b></td>
+                                        <td>733</td>
+                                        <td>2,410.2 MW</td>
+                                        <td>2.63</td>
+                                        <td>12.4</td>
+                                        <td><span class="badge-r good">r = 0.887</span></td>
+                                        <td>3.26 m/s (NW)</td>
+                                    </tr>
+                                    <tr>
+                                        <td><b>Punjab-Haryana Agricultural Basin (Stubble)</b></td>
+                                        <td>689</td>
+                                        <td>2,198.5 MW</td>
+                                        <td>3.62</td>
+                                        <td>15.8</td>
+                                        <td><span class="badge-r good">r = 0.838</span></td>
+                                        <td>3.55 m/s (NW)</td>
+                                    </tr>
+                                    <tr>
+                                        <td><b>Central &amp; Eastern Indo-Gangetic Corridor</b></td>
+                                        <td>286</td>
+                                        <td>942.1 MW</td>
+                                        <td>2.37</td>
+                                        <td>8.9</td>
+                                        <td><span class="badge-r good">r = 0.982</span></td>
+                                        <td>3.22 m/s (WNW)</td>
+                                    </tr>
+                                    <tr>
+                                        <td><b>Northeast Highlands (Shifting Jhum Cultivation)</b></td>
+                                        <td>102</td>
+                                        <td>314.8 MW</td>
+                                        <td>3.85</td>
+                                        <td>11.2</td>
+                                        <td><span class="badge-r good">r = 0.764</span></td>
+                                        <td>2.45 m/s (NE)</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -859,7 +1111,8 @@
             <div class="footer-container">
                 <div class="footer-left">
                     <div class="footer-title">Vidarbha Air Quality Initiative</div>
-                    <p class="footer-desc">Providing civic, accessible environmental updates across Nagpur, Chandrapur, and Eastern Maharashtra.</p>
+                    <p class="footer-desc">Providing civic, accessible environmental updates across Nagpur, Chandrapur,
+                        and Eastern Maharashtra.</p>
                 </div>
                 <div class="footer-right">
                     <span>© 2025 Clean Air Vidarbha. Public health guidance.</span>
@@ -870,13 +1123,20 @@
 
     <!-- Notification Toast Element -->
     <div id="toast-message" class="toast-popup hidden">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
         <span id="toast-text">Location saved to favorites!</span>
     </div>
 
     <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <!-- Application Logic -->
-    <script src="/static/app.js"></script>
+    <script src="/static/app.js?v=3.0"></script>
+
+
+
 </body>
+
 </html>

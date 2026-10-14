@@ -36,7 +36,7 @@ function initNavigation() {
     const pagePanIndia = document.getElementById('page-pan-india-hcho');
     const brandLogo = document.getElementById('brand-logo');
 
-    function switchPage(pageName) {
+    function switchPage(pageName = 'page-check-location') {
         tabCheckLoc?.classList.remove('active');
         tabPopular?.classList.remove('active');
         tabPanIndia?.classList.remove('active');
@@ -45,16 +45,9 @@ function initNavigation() {
         pagePopular?.classList.add('hidden');
         pagePanIndia?.classList.add('hidden');
 
-        if (pageName === 'page-check-location') {
-            tabCheckLoc?.classList.add('active');
-            pageCheckLoc?.classList.remove('hidden');
-
-            setTimeout(() => {
-                if (map) {
-                    map.invalidateSize();
-                    map.panTo([activeTargetCoords.lat, activeTargetCoords.lon], { animate: false });
-                }
-            }, 100);
+        if (pageName === 'page-popular-cities') {
+            tabPopular?.classList.add('active');
+            pagePopular?.classList.remove('hidden');
         } else if (pageName === 'page-pan-india-hcho') {
             tabPanIndia?.classList.add('active');
             pagePanIndia?.classList.remove('hidden');
@@ -67,8 +60,16 @@ function initNavigation() {
                 }
             }, 100);
         } else {
-            tabPopular?.classList.add('active');
-            pagePopular?.classList.remove('hidden');
+            // Default: Check Location (Primary Interactive Map View)
+            tabCheckLoc?.classList.add('active');
+            pageCheckLoc?.classList.remove('hidden');
+
+            setTimeout(() => {
+                if (map) {
+                    map.invalidateSize();
+                    map.panTo([activeTargetCoords.lat, activeTargetCoords.lon], { animate: false });
+                }
+            }, 100);
         }
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -76,7 +77,7 @@ function initNavigation() {
     if (tabCheckLoc) tabCheckLoc.addEventListener('click', () => switchPage('page-check-location'));
     if (tabPopular) tabPopular.addEventListener('click', () => switchPage('page-popular-cities'));
     if (tabPanIndia) tabPanIndia.addEventListener('click', () => switchPage('page-pan-india-hcho'));
-    if (brandLogo) brandLogo.addEventListener('click', () => switchPage('page-popular-cities'));
+    if (brandLogo) brandLogo.addEventListener('click', () => switchPage('page-check-location'));
 
     return { switchPage };
 }
@@ -472,7 +473,9 @@ function showToast(message) {
 document.addEventListener('DOMContentLoaded', () => {
     const { switchPage } = initNavigation();
     initMap();
+    switchPage('page-check-location');
     fetchAllNodes();
+    setupHchoDetailsToggle();
 
     // "View Detailed Forecast" buttons on Popular Cities Page
     document.querySelectorAll('.btn-card-forecast').forEach(btn => {
@@ -606,6 +609,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // Initialize Pan-India HCHO details toggle button
+    setupHchoDetailsToggle();
 });
 
 // ==============================================================================
@@ -657,9 +663,10 @@ async function initIndiaHchoMap() {
         sampleIndiaLocation(lat, lon);
     });
 
-    // Initialize Layer Toggles & Zoom controls
+    // Initialize Layer Toggles, Zoom controls & More Info collapse
     setupHchoLayerToggles();
     setupHchoZoomControls();
+    setupHchoDetailsToggle();
 
     // Fetch and render data
     await loadHchoAnalyticsData();
@@ -671,28 +678,30 @@ function setupHchoLayerToggles() {
     const toggleWind = document.getElementById('toggle-layer-wind');
     const toggleClusters = document.getElementById('toggle-layer-clusters');
 
-    function toggleLayer(btn, layerGroup) {
+    function toggleLayer(btn, layerGroup, layerName) {
         if (!btn || !layerGroup || !indiaHchoMap) return;
         if (indiaHchoMap.hasLayer(layerGroup)) {
             indiaHchoMap.removeLayer(layerGroup);
             btn.classList.remove('active');
+            showToast(`${layerName} layer hidden`);
         } else {
             indiaHchoMap.addLayer(layerGroup);
             btn.classList.add('active');
+            showToast(`${layerName} layer visible`);
         }
     }
 
     if (toggleFires) {
-        toggleFires.addEventListener('click', () => toggleLayer(toggleFires, fireLayerGroup));
+        toggleFires.addEventListener('click', () => toggleLayer(toggleFires, fireLayerGroup, 'Active Fires'));
     }
     if (toggleHotspots) {
-        toggleHotspots.addEventListener('click', () => toggleLayer(toggleHotspots, hotspotLayerGroup));
+        toggleHotspots.addEventListener('click', () => toggleLayer(toggleHotspots, hotspotLayerGroup, 'Getis-Ord Gi* Hotspots'));
     }
     if (toggleWind) {
-        toggleWind.addEventListener('click', () => toggleLayer(toggleWind, windLayerGroup));
+        toggleWind.addEventListener('click', () => toggleLayer(toggleWind, windLayerGroup, 'ERA5 Wind Vectors'));
     }
     if (toggleClusters) {
-        toggleClusters.addEventListener('click', () => toggleLayer(toggleClusters, clusterLayerGroup));
+        toggleClusters.addEventListener('click', () => toggleLayer(toggleClusters, clusterLayerGroup, 'DBSCAN Plume Clusters'));
     }
 }
 
@@ -734,6 +743,45 @@ function setupHchoZoomControls() {
     }
 }
 
+function setupHchoDetailsToggle() {
+    const toggleBtn = document.getElementById('btn-toggle-hcho-details');
+    const detailsContainer = document.getElementById('hcho-scientific-details');
+    const btnText = document.getElementById('btn-more-info-text');
+
+    if (!toggleBtn || !detailsContainer) return;
+    if (toggleBtn.dataset.bound === 'true') return;
+    toggleBtn.dataset.bound = 'true';
+
+    // Ensure initial collapsed state is synchronized
+    if (detailsContainer.style.display !== 'block') {
+        detailsContainer.style.display = 'none';
+        detailsContainer.classList.add('hidden');
+        toggleBtn.classList.remove('active');
+        toggleBtn.setAttribute('aria-expanded', 'false');
+    }
+
+    toggleBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const isHidden = detailsContainer.style.display === 'none' || detailsContainer.classList.contains('hidden');
+        if (isHidden) {
+            detailsContainer.style.display = 'block';
+            detailsContainer.classList.remove('hidden');
+            toggleBtn.classList.add('active');
+            toggleBtn.setAttribute('aria-expanded', 'true');
+            if (btnText) btnText.textContent = "Hide Atmospheric Analytics & Regional Breakdown";
+            setTimeout(() => {
+                detailsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 60);
+        } else {
+            detailsContainer.style.display = 'none';
+            detailsContainer.classList.add('hidden');
+            toggleBtn.classList.remove('active');
+            toggleBtn.setAttribute('aria-expanded', 'false');
+            if (btnText) btnText.textContent = "More Info: View Atmospheric Analytics & Regional Breakdown";
+        }
+    });
+}
+
 async function loadHchoAnalyticsData() {
     try {
         // 1. Fetch Summary & Statistics
@@ -746,8 +794,20 @@ async function loadHchoAnalyticsData() {
         // 2. Fetch Getis-Ord Hotspots & DBSCAN Clusters
         const hotspotsRes = await fetch('/api/hcho/hotspots');
         if (hotspotsRes.ok) {
-            hchoCache.hotspots = await hotspotsRes.json();
-            renderHotspotsLayer(hchoCache.hotspots);
+            const data = await hotspotsRes.json();
+            // /api/hcho/hotspots returns { getis_ord_hotspots: FeatureCollection, dbscan_clusters: FeatureCollection }
+            const giGeojson = data.getis_ord_hotspots || (data.type === 'FeatureCollection' ? data : null);
+            const clusterGeojson = data.dbscan_clusters || null;
+
+            hchoCache.hotspots = giGeojson;
+            hchoCache.clusters = clusterGeojson;
+
+            if (giGeojson) {
+                renderHotspotsLayer(giGeojson);
+            }
+            if (clusterGeojson) {
+                renderClustersLayer(clusterGeojson);
+            }
         }
 
         // 3. Fetch Active Fire Points
@@ -823,7 +883,7 @@ function renderHchoSummary(data) {
     // Populate DBSCAN Clusters in Sidebar
     const clustersContainer = document.getElementById('clusters-container');
     const clustersCountTag = document.getElementById('clusters-count-tag');
-    const topClusters = data.dbscan_clusters?.top_clusters || [];
+    const topClusters = data.top_clusters || data.dbscan_clusters?.top_clusters || [];
 
     if (clustersCountTag) {
         clustersCountTag.textContent = `${topClusters.length} Clusters`;
@@ -834,19 +894,25 @@ function renderHchoSummary(data) {
         topClusters.forEach(cl => {
             const item = document.createElement('div');
             item.className = 'cluster-item';
+            const firesCount = (cl.total_active_fires != null ? cl.total_active_fires : (cl.total_fires || 0)).toLocaleString();
+            const frpVal = (cl.total_frp_mw != null ? cl.total_frp_mw : (cl.total_frp || 0)).toFixed(1);
+            const hchoVal = (cl.mean_hcho_molec_cm2_e15 != null ? cl.mean_hcho_molec_cm2_e15 : (cl.mean_hcho || 0)).toFixed(2);
+
             item.innerHTML = `
                 <div class="cluster-tag-badge">Cluster #${cl.cluster_id}</div>
-                <div class="cluster-item-title">${cl.region_label || `Cluster #${cl.cluster_id}`}</div>
+                <div class="cluster-item-title">${cl.cluster_name || cl.region_label || `Cluster #${cl.cluster_id}`}</div>
                 <div class="cluster-item-metrics">
-                    <span>🔥 ${(cl.total_fires || 0).toLocaleString()} fires</span>
-                    <span>⚡ ${(cl.total_frp || 0).toFixed(1)} MW FRP</span>
-                    <span>🌌 ${(cl.mean_hcho || 0).toFixed(2)} × 10¹⁵</span>
+                    <span>🔥 ${firesCount} fires</span>
+                    <span>⚡ ${frpVal} MW FRP</span>
+                    <span>🌌 ${hchoVal} × 10¹⁵</span>
                 </div>
             `;
             item.addEventListener('click', () => {
-                if (indiaHchoMap && cl.center_lat && cl.center_lon) {
-                    indiaHchoMap.flyTo([cl.center_lat, cl.center_lon], 7, { duration: 1.2 });
-                    sampleIndiaLocation(cl.center_lat, cl.center_lon);
+                const cLat = cl.centroid?.lat != null ? cl.centroid.lat : cl.center_lat;
+                const cLon = cl.centroid?.lon != null ? cl.centroid.lon : cl.center_lon;
+                if (indiaHchoMap && cLat && cLon) {
+                    indiaHchoMap.flyTo([cLat, cLon], 7, { duration: 1.2 });
+                    sampleIndiaLocation(cLat, cLon, cl);
                 }
             });
             clustersContainer.appendChild(item);
@@ -868,7 +934,7 @@ function renderHotspotsLayer(geojson) {
         const z = p.gi_star_z_score != null ? p.gi_star_z_score : (p.gi_z_score != null ? p.gi_z_score : 0);
         const hcho = p.hcho_column_10_15 != null ? p.hcho_column_10_15 : (p.hcho_molec_cm2_e15 != null ? p.hcho_molec_cm2_e15 : 2.5);
 
-        let color = '#f59e0b';
+        let color = p.color || '#f59e0b';
         let radius = 4.5;
         if (z >= 2.58) {
             color = '#dc2626'; // 99% confidence
@@ -886,11 +952,13 @@ function renderHotspotsLayer(geojson) {
             fillOpacity: 0.85
         });
 
+        const sign = z >= 0 ? '+' : '';
         marker.bindTooltip(`
             <div style="font-family:'Plus Jakarta Sans',sans-serif; font-size:11px; font-weight:600; padding:2px 4px;">
-                <b>Hotspot Gi* Z: +${z.toFixed(2)}</b><br/>
+                <b>Hotspot Gi* Z: ${sign}${z.toFixed(2)}</b><br/>
                 HCHO Column: ${hcho.toFixed(2)} × 10¹⁵ molec/cm²<br/>
-                FRP: ${(p.total_frp || p.frp_mw || 0).toFixed(1)} MW (${p.fire_count || 0} fires)
+                FRP: ${(p.total_frp || p.frp_mw || 0).toFixed(1)} MW (${p.fire_count || 0} fires)<br/>
+                <span style="font-size:10px; color:#64748b;">${p.eco_zone || 'Hotspot Point'}</span>
             </div>
         `, { sticky: true });
 
@@ -899,6 +967,73 @@ function renderHotspotsLayer(geojson) {
         });
 
         hotspotLayerGroup.addLayer(marker);
+    });
+}
+
+function renderClustersLayer(geojson) {
+    if (!clusterLayerGroup || !geojson || !geojson.features) return;
+    clusterLayerGroup.clearLayers();
+
+    geojson.features.forEach(f => {
+        const p = f.properties || {};
+
+        // 1. Draw cluster boundary polygon
+        const poly = L.geoJSON(f, {
+            style: {
+                color: '#6d28d9',
+                weight: 2.5,
+                opacity: 0.95,
+                dashArray: '6, 6',
+                fillColor: '#8b5cf6',
+                fillOpacity: 0.22
+            }
+        });
+
+        const tooltipHtml = `
+            <div style="font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; font-weight:700; padding:4px 6px;">
+                <span style="color:#7c3aed; text-transform:uppercase; font-size:10px; font-weight:800; letter-spacing:0.05em;">DBSCAN Plume Cluster #${p.cluster_id}</span><br/>
+                <span style="font-size:13px; color:#0f172a;">${p.cluster_name || p.region_tag || `Cluster #${p.cluster_id}`}</span><br/>
+                <div style="font-size:11px; color:#475569; font-weight:500; margin-top:3px; line-height:1.4;">
+                    🔥 ${(p.total_active_fires || 0).toLocaleString()} fires · ${(p.total_frp_mw || 0).toFixed(1)} MW FRP<br/>
+                    Mean HCHO: ${(p.mean_hcho_molec_cm2_e15 || 0).toFixed(2)} × 10¹⁵ molec/cm²<br/>
+                    Gi* Mean Z: +${(p.mean_gi_z_score || 0).toFixed(2)} · Wind: ${(p.mean_wind_speed_ms || 3.0).toFixed(1)} m/s
+                </div>
+            </div>
+        `;
+
+        poly.bindTooltip(tooltipHtml, { sticky: true });
+        poly.on('click', (e) => {
+            const cLat = p.centroid?.lat != null ? p.centroid.lat : e.latlng.lat;
+            const cLon = p.centroid?.lon != null ? p.centroid.lon : e.latlng.lng;
+            sampleIndiaLocation(cLat, cLon, p);
+        });
+        clusterLayerGroup.addLayer(poly);
+
+        // 2. Draw centroid badge marker
+        const cLat = p.centroid?.lat;
+        const cLon = p.centroid?.lon;
+        if (cLat != null && cLon != null && !isNaN(cLat) && !isNaN(cLon)) {
+            const badgeHtml = `
+                <div class="dbscan-map-badge" style="background:#7c3aed; color:#ffffff; padding:3px 9px; border-radius:999px; font-size:10px; font-weight:800; font-family:'Plus Jakarta Sans',sans-serif; box-shadow:0 3px 10px rgba(124,58,237,0.45); display:flex; align-items:center; gap:5px; white-space:nowrap; border:1.5px solid #ffffff; cursor:pointer;">
+                    <span>🏷️ #${p.cluster_id}</span>
+                    <span style="background:rgba(255,255,255,0.25); padding:1px 5px; border-radius:6px; font-size:9.5px;">${(p.total_active_fires || 0).toLocaleString()} 🔥</span>
+                </div>
+            `;
+
+            const icon = L.divIcon({
+                className: 'custom-pin-divicon',
+                html: badgeHtml,
+                iconSize: [90, 24],
+                iconAnchor: [45, 12]
+            });
+
+            const marker = L.marker([cLat, cLon], { icon });
+            marker.bindTooltip(tooltipHtml, { sticky: true });
+            marker.on('click', () => {
+                sampleIndiaLocation(cLat, cLon, p);
+            });
+            clusterLayerGroup.addLayer(marker);
+        }
     });
 }
 
@@ -1010,10 +1145,10 @@ function sampleIndiaLocation(lat, lon, knownProps = null) {
     let frpNearby = 0;
 
     if (knownProps) {
-        hchoVal = knownProps.hcho_column_10_15 || (knownProps.hcho_tropospheric_column ? knownProps.hcho_tropospheric_column * 60221.4 : 2.5);
-        zScore = knownProps.gi_star_z_score || 0;
-        firesNearby = knownProps.fire_count || 0;
-        frpNearby = knownProps.total_frp || 0;
+        hchoVal = knownProps.hcho_column_10_15 || (knownProps.hcho_molec_cm2_e15 != null ? knownProps.hcho_molec_cm2_e15 : (knownProps.mean_hcho_molec_cm2_e15 != null ? knownProps.mean_hcho_molec_cm2_e15 : (knownProps.hcho_tropospheric_column ? knownProps.hcho_tropospheric_column * 60221.4 : 2.5)));
+        zScore = knownProps.gi_star_z_score != null ? knownProps.gi_star_z_score : (knownProps.gi_z_score != null ? knownProps.gi_z_score : (knownProps.mean_gi_z_score != null ? knownProps.mean_gi_z_score : 0));
+        firesNearby = knownProps.fire_count != null ? knownProps.fire_count : (knownProps.total_active_fires != null ? knownProps.total_active_fires : (knownProps.total_fires || 0));
+        frpNearby = knownProps.total_frp != null ? knownProps.total_frp : (knownProps.frp_mw != null ? knownProps.frp_mw : (knownProps.total_frp_mw || 0));
     } else {
         if (hchoCache.fires?.features) {
             hchoCache.fires.features.forEach(f => {
@@ -1037,8 +1172,8 @@ function sampleIndiaLocation(lat, lon, knownProps = null) {
                 if (d < minD) {
                     minD = d;
                     if (d < 1.2) {
-                        zScore = f.properties?.gi_star_z_score || 0;
-                        hchoVal = f.properties?.hcho_column_10_15 || 2.4;
+                        zScore = f.properties?.gi_star_z_score != null ? f.properties.gi_star_z_score : (f.properties?.gi_z_score != null ? f.properties.gi_z_score : 0);
+                        hchoVal = f.properties?.hcho_column_10_15 != null ? f.properties.hcho_column_10_15 : (f.properties?.hcho_molec_cm2_e15 != null ? f.properties.hcho_molec_cm2_e15 : 2.4);
                     }
                 }
             });

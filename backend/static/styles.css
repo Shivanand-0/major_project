@@ -75,6 +75,10 @@
     padding: 0;
 }
 
+.hidden {
+    display: none !important;
+}
+
 body.light-theme {
     background-color: var(--bg-page);
     color: var(--text-body);
@@ -2188,4 +2192,80 @@ body.light-theme {
 .text-blue { color: #2563eb !important; }
 .text-red { color: #dc2626 !important; }
 .text-amber { color: #d97706 !important; }
+
+/* ==========================================================================
+   HCHO MORE INFO TOGGLE & EXPANDABLE SCIENTIFIC ANALYTICS SECTION
+   ========================================================================== */
+.more-info-toggle-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 30px 0 20px 0;
+}
+
+.btn-more-info {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    background: #ffffff;
+    border: 1.5px solid #cbd5e1;
+    color: #0f172a;
+    padding: 12px 28px;
+    border-radius: 9999px;
+    font-family: var(--font-heading);
+    font-size: 0.94rem;
+    font-weight: 700;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-more-info:hover {
+    background: #f8fafc;
+    border-color: #94a3b8;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.12);
+    color: #059669;
+}
+
+.btn-more-info.active {
+    background: #ecfdf5;
+    border-color: #6ee7b7;
+    color: #065f46;
+    box-shadow: 0 4px 14px rgba(5, 150, 105, 0.15);
+}
+
+.btn-more-info .more-info-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #059669;
+}
+
+.btn-more-info .chevron-icon {
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    stroke: currentColor;
+}
+
+.btn-more-info.active .chevron-icon {
+    transform: rotate(180deg);
+}
+
+.hcho-details-collapse {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.hcho-details-collapse.hidden {
+    display: none !important;
+}
+
+/* DBSCAN Cluster Map Badge Hover Effect */
+.dbscan-map-badge {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dbscan-map-badge:hover {
+    transform: scale(1.1) !important;
+    box-shadow: 0 6px 16px rgba(124, 58, 237, 0.55) !important;
+}
 

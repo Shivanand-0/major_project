@@ -7,13 +7,15 @@ import sys
 import io
 import uvicorn
 from pathlib import Path
+import os
 
 # Ensure UTF-8 output on Windows console
 if sys.stdout and hasattr(sys.stdout, 'buffer'):
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 
-BACKEND_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = BACKEND_DIR.parent
+# 1. Define folder layout explicitly relative to PROJECT_ROOT (D:\college_dev)
+PROJECT_ROOT = Path(__file__).resolve().parent
+BACKEND_DIR = PROJECT_ROOT / "backend"
 ML_DIR = PROJECT_ROOT / "ml"
 
 # Ensure all relevant paths are in sys.path
@@ -24,7 +26,15 @@ for p in [str(BACKEND_DIR), str(ML_DIR), str(ML_DIR / "step_07_serialization")]:
 if __name__ == "__main__":
     print("=" * 80)
     print(">> STARTING VIDARBHA AIR QUALITY VIRTUAL SENSOR BACKEND API")
-    print(">> Dashboard UI: http://localhost:8000")
-    print(">> API Documentation: http://localhost:8000/docs")
     print("=" * 80)
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)
+    
+    # Render provides the port dynamically. Fallback to 8000 for local use.
+    port = int(os.environ.get("PORT", 8000))
+    
+    uvicorn.run(
+        "main:app", 
+        host="0.0.0.0", 
+        port=port, 
+        reload=False, 
+        app_dir=str(BACKEND_DIR)
+    )

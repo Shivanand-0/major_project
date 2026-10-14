@@ -1,0 +1,8 @@
+eco_zone,grid_cells,total_active_fires,total_frp_mw,mean_hcho_e15,peak_hcho_e15,pearson_r,mean_wind_speed_ms,dominant_wind_dir_deg
+Northern/Western Arid Region,8893,3436,10119.2,2.25,16.86,0.728,2.57,117.3
+Punjab-Haryana Agricultural Basin (High Stubble Burning),255,689,3985.0,3.62,16.86,0.838,3.55,348.5
+Central India Deciduous Forest (Vidarbha/MP/Chhattisgarh),594,733,1705.4,2.63,16.86,0.887,3.26,71.8
+Central & Eastern Indo-Gangetic Plain (Transport Corridor),697,286,1013.6,2.37,16.86,0.982,3.22,277.3
+Southern Peninsular Region,3196,247,984.6,2.16,11.73,0.986,3.36,49.7
+Western Ghats & Deccan Plateau,435,215,578.4,2.32,16.86,0.913,6.34,73.4
+Northeast Highlands (Shifting Jhum Cultivation),567,96,267.6,2.2,6.75,0.936,2.09,64.8

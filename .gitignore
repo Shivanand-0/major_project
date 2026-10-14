@@ -4,7 +4,8 @@ test_backend.py
 !backend/models/
 
 # ml
-data/
+ml/data/
+ds/data/raw
 
 venv/
 

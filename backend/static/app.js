@@ -108,7 +108,6 @@ function initMap() {
 }
 
 // 3. Update or Place Interactive Target Pin
-// 3. Update or Place Interactive Target Pin
 function updateTargetPin(lat, lon, label = null, prediction = null, features = null) {
     if (!map) return;
 
@@ -143,10 +142,6 @@ function updateTargetPin(lat, lon, label = null, prediction = null, features = n
     if (prediction) {
         const aqi = Math.round(prediction.predicted_india_naqi);
         const cat = getCPCBCategory(aqi);
-        const pm25 = features?.pm25 != null ? features.pm25 : (aqi * 0.45);
-        const temp = features?.temperature_celsius != null ? `${Math.round(features.temperature_celsius)}°C` : '31°C';
-        const hum = features?.relative_humidity != null ? `${Math.round(features.relative_humidity)}%` : '50%';
-        const pol = prediction.responsible_pollutant || 'Dust & O3';
 
         popupContent = `
             <div class="map-interactive-popup">
@@ -156,20 +151,6 @@ function updateTargetPin(lat, lon, label = null, prediction = null, features = n
                 </div>
                 <h4 class="popup-loc-title">${locTitle}</h4>
                 <div class="popup-coords-text">${coordsStr}</div>
-                <div class="popup-mini-grid">
-                    <div class="popup-mini-item">
-                        <span class="p-lbl">PM2.5</span>
-                        <span class="p-val text-emerald">${pm25.toFixed(1)} µg/m³</span>
-                    </div>
-                    <div class="popup-mini-item">
-                        <span class="p-lbl">Weather</span>
-                        <span class="p-val">${temp} · ${hum}</span>
-                    </div>
-                    <div class="popup-mini-item">
-                        <span class="p-lbl">Pollutant</span>
-                        <span class="p-val">${pol}</span>
-                    </div>
-                </div>
                 <div class="popup-footer-status">
                     <span class="popup-status-dot" style="background:${cat.color};"></span>
                     <span>${cat.desc}</span>
@@ -234,8 +215,37 @@ function renderCityMarkersOnMap(nodes) {
     });
 }
 
+// Helper: Toggle Real-Time Reading Panel Loader State
+function setReadingCardLoading(isLoading, locationName = null) {
+    const loaderEl = document.getElementById('reading-loader');
+    const bodyEl = document.getElementById('reading-content-body');
+    const subtitleEl = document.getElementById('reading-loader-subtitle');
+
+    if (loaderEl && bodyEl) {
+        if (isLoading) {
+            loaderEl.style.display = 'flex';
+            bodyEl.style.display = 'none';
+            bodyEl.classList.remove('fade-in');
+            if (subtitleEl) {
+                subtitleEl.textContent = locationName 
+                    ? `Querying atmospheric telemetry & running AI models for ${locationName}...`
+                    : 'Querying atmospheric telemetry feeds & spatiotemporal ML models...';
+            }
+        } else {
+            loaderEl.style.display = 'none';
+            bodyEl.style.display = 'flex';
+            bodyEl.classList.remove('fade-in');
+            void bodyEl.offsetWidth; // Trigger reflow for smooth fade-in
+            bodyEl.classList.add('fade-in');
+        }
+    }
+}
+
+let currentEvaluationId = 0;
+
 // 5. Select Coordinate & Ingest Live Telemetry
 async function selectCoordinate(lat, lon, name = null, cachedNode = null) {
+    const evalId = ++currentEvaluationId;
     activeTargetCoords = { lat, lon, name: name || `${lat}°N, ${lon}°E` };
 
     // Update Target Coordinates Pill Overlay
@@ -249,11 +259,13 @@ async function selectCoordinate(lat, lon, name = null, cachedNode = null) {
     }
 
     // Set Reading Loading State
-    const aqiNumEl = document.getElementById('reading-aqi-num');
     const titleEl = document.getElementById('reading-city-title');
     const pointCoordsEl = document.getElementById('reading-point-coords');
     if (titleEl) titleEl.textContent = `Current Air Quality in ${name || 'Selected Location'}`;
     if (pointCoordsEl) pointCoordsEl.textContent = `Selected Point: ${lat.toFixed(4)}° N, ${lon.toFixed(4)}° E`;
+
+    // Show Loader & hide stale previous readings
+    setReadingCardLoading(true, name);
 
     try {
         let prediction = null;
@@ -277,18 +289,27 @@ async function selectCoordinate(lat, lon, name = null, cachedNode = null) {
             stationGround = data.physical_station_ground_truth;
         }
 
+        if (evalId !== currentEvaluationId) return;
+
         updateReadingPanel(prediction, features, stationGround, name);
         // Refresh popup with resolved telemetry & AQI
         updateTargetPin(lat, lon, name, prediction, features);
     } catch (err) {
+        if (evalId !== currentEvaluationId) return;
         console.error('Failed to evaluate coordinate:', err);
         showToast(`Evaluation note: Using cached baseline for (${lat}, ${lon})`);
+        setReadingCardLoading(false);
     }
 }
 
 // 6. Update Right Reading Panel with Telemetry
 function updateReadingPanel(prediction, features, stationGround, locationName) {
-    if (!prediction) return;
+    if (!prediction) {
+        setReadingCardLoading(false);
+        return;
+    }
+
+    setReadingCardLoading(false);
 
     const aqi = Math.round(prediction.predicted_india_naqi);
     const cat = getCPCBCategory(aqi);

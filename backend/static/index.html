@@ -16,6 +16,7 @@
 
 <body>
 
+
     <div class="app-wrapper">
         <!-- Top Navigation Bar -->
         <header class="app-header">
@@ -178,7 +179,7 @@
                                 <span class="legend-item"><span class="color-bullet sat"></span> 51–100
                                     Satisfactory</span>
                                 <span class="legend-item"><span class="color-bullet mod"></span> 101–200 Moderate</span>
-                                <span class="legend-note">· Tap anywhere on grid to sample</span>
+                                <span class="legend-item"><span class="color-bullet poor"></span> 200+ Poor</span>
                             </div>
                         </div>
 
@@ -227,91 +228,121 @@
                                 </div>
                             </div>
 
-                            <!-- AQI Hero Score Box -->
-                            <div class="aqi-hero-box">
-                                <div class="aqi-score-container">
-                                    <span class="aqi-main-number" id="reading-aqi-num">98</span>
-                                    <span class="aqi-total-scale">/ 500</span>
-                                </div>
-                                <div class="aqi-category-container">
-                                    <div class="cat-pill satisfactory" id="reading-cat-pill">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                            <!-- Real-Time Reading Loader State (Shown when querying new location) -->
+                            <div class="reading-loader-container" id="reading-loader" style="display: none;">
+                                <div class="reading-spinner-wrap">
+                                    <div class="reading-spinner-ring"></div>
+                                    <div class="reading-spinner-core">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
                                             stroke="currentColor" stroke-width="2.5">
-                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                            <path
+                                                d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83">
+                                            </path>
                                         </svg>
-                                        <span id="reading-cat-name">Satisfactory</span>
                                     </div>
-                                    <span class="cat-guidance-sub" id="reading-cat-sub">Safe for everyday
-                                        activities</span>
+                                </div>
+                                <h3 class="reading-loader-title">Evaluating Local Air Quality</h3>
+                                <p class="reading-loader-desc" id="reading-loader-subtitle">Querying atmospheric
+                                    telemetry feeds &amp; running spatiotemporal ML models...</p>
+                                <div class="reading-loader-badges">
+                                    <span class="reading-loader-badge"><span class="badge-pulse-dot"></span> S5P
+                                        Satellite Telemetry</span>
+                                    <span class="reading-loader-badge"><span class="badge-pulse-dot"></span> Surface
+                                        Meteorology</span>
+                                    <span class="reading-loader-badge"><span class="badge-pulse-dot"></span> Estimation
+                                        Model</span>
                                 </div>
                             </div>
 
-                            <!-- Health & Activity Guidance Block -->
-                            <div class="guidance-banner" id="guidance-banner">
-                                <div class="guidance-icon-box">
-                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#047857"
-                                        stroke-width="2.2">
-                                        <circle cx="12" cy="5" r="2"></circle>
-                                        <path d="m15 22-3-8 3-5-6-2-2 4 4 1-2 10"></path>
-                                    </svg>
-                                </div>
-                                <div class="guidance-content">
-                                    <div class="guidance-title">Health &amp; Activity Guidance</div>
-                                    <p class="guidance-text" id="reading-guidance-text">Air quality is good. Great day
-                                        for outdoor activities, walking, and opening windows!</p>
-                                </div>
-                            </div>
-
-                            <!-- Telemetry Metrics Grid (3 Boxes) -->
-                            <div class="metrics-grid">
-                                <div class="metric-card">
-                                    <div class="metric-head">
-                                        <span class="metric-label">Temperature</span>
-                                        <span class="metric-emoji">🌡️</span>
+                            <!-- Reading Content Body (Hidden while fetching new location) -->
+                            <div class="reading-content-body" id="reading-content-body">
+                                <!-- AQI Hero Score Box -->
+                                <div class="aqi-hero-box">
+                                    <div class="aqi-score-container">
+                                        <span class="aqi-main-number" id="reading-aqi-num">98</span>
+                                        <span class="aqi-total-scale">/ 500</span>
                                     </div>
-                                    <div class="metric-val" id="metric-temp">32°C</div>
-                                    <div class="metric-hint" id="metric-temp-hint">Warm &amp; Sunny</div>
-                                </div>
-
-                                <div class="metric-card">
-                                    <div class="metric-head">
-                                        <span class="metric-label">Humidity</span>
-                                        <span class="metric-emoji">💧</span>
+                                    <div class="aqi-category-container">
+                                        <div class="cat-pill satisfactory" id="reading-cat-pill">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                                stroke="currentColor" stroke-width="2.5">
+                                                <polyline points="20 6 9 17 4 12"></polyline>
+                                            </svg>
+                                            <span id="reading-cat-name">Satisfactory</span>
+                                        </div>
+                                        <span class="cat-guidance-sub" id="reading-cat-sub">Safe for everyday
+                                            activities</span>
                                     </div>
-                                    <div class="metric-val" id="metric-rh">35%</div>
-                                    <div class="metric-hint" id="metric-rh-hint">Comfortable</div>
                                 </div>
 
-                                <div class="metric-card">
-                                    <div class="metric-head">
-                                        <span class="metric-label">Main Pollutant</span>
-                                        <span class="metric-emoji">〰️</span>
+                                <!-- Health & Activity Guidance Block -->
+                                <div class="guidance-banner" id="guidance-banner">
+                                    <div class="guidance-icon-box">
+                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#047857"
+                                            stroke-width="2.2">
+                                            <circle cx="12" cy="5" r="2"></circle>
+                                            <path d="m15 22-3-8 3-5-6-2-2 4 4 1-2 10"></path>
+                                        </svg>
                                     </div>
-                                    <div class="metric-val" id="metric-pollutant">Dust &amp; PM2.5</div>
-                                    <div class="metric-hint" id="metric-pollutant-hint">Low particulate level</div>
+                                    <div class="guidance-content">
+                                        <div class="guidance-title">Health &amp; Activity Guidance</div>
+                                        <p class="guidance-text" id="reading-guidance-text">Air quality is good. Great
+                                            day
+                                            for outdoor activities, walking, and opening windows!</p>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <!-- Action Buttons -->
-                            <div class="reading-actions">
-                                <button type="button" id="btn-save-location" class="btn-action-primary">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2">
-                                        <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path>
-                                    </svg>
-                                    <span>Save Location</span>
-                                </button>
-                                <button type="button" id="btn-share-report" class="btn-action-secondary">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2">
-                                        <circle cx="18" cy="5" r="3"></circle>
-                                        <circle cx="6" cy="12" r="3"></circle>
-                                        <circle cx="18" cy="19" r="3"></circle>
-                                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-                                        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-                                    </svg>
-                                    <span>Share Report</span>
-                                </button>
+                                <!-- Telemetry Metrics Grid (3 Boxes) -->
+                                <div class="metrics-grid">
+                                    <div class="metric-card">
+                                        <div class="metric-head">
+                                            <span class="metric-label">Temperature</span>
+                                            <span class="metric-emoji">🌡️</span>
+                                        </div>
+                                        <div class="metric-val" id="metric-temp">32°C</div>
+                                        <div class="metric-hint" id="metric-temp-hint">Warm &amp; Sunny</div>
+                                    </div>
+
+                                    <div class="metric-card">
+                                        <div class="metric-head">
+                                            <span class="metric-label">Humidity</span>
+                                            <span class="metric-emoji">💧</span>
+                                        </div>
+                                        <div class="metric-val" id="metric-rh">35%</div>
+                                        <div class="metric-hint" id="metric-rh-hint">Comfortable</div>
+                                    </div>
+
+                                    <div class="metric-card">
+                                        <div class="metric-head">
+                                            <span class="metric-label">Main Pollutant</span>
+                                            <span class="metric-emoji">〰️</span>
+                                        </div>
+                                        <div class="metric-val" id="metric-pollutant">Dust &amp; PM2.5</div>
+                                        <div class="metric-hint" id="metric-pollutant-hint">Low particulate level</div>
+                                    </div>
+                                </div>
+
+                                <!-- Action Buttons -->
+                                <div class="reading-actions">
+                                    <button type="button" id="btn-save-location" class="btn-action-primary">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path>
+                                        </svg>
+                                        <span>Save Location</span>
+                                    </button>
+                                    <button type="button" id="btn-share-report" class="btn-action-secondary">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <circle cx="18" cy="5" r="3"></circle>
+                                            <circle cx="6" cy="12" r="3"></circle>
+                                            <circle cx="18" cy="19" r="3"></circle>
+                                            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                                            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                                        </svg>
+                                        <span>Share Report</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -927,30 +958,27 @@
                         </div>
 
                         <!-- Top DBSCAN Emission Clusters List -->
-                        <div class="clusters-list-card">
-                            <div class="clusters-head">
-                                <h4 class="clusters-head-title">Major Regional Biomass Clusters</h4>
-                                <span class="clusters-count-tag" id="clusters-count-tag">6 Clusters</span>
-                            </div>
-                            <div class="clusters-scroll-list" id="clusters-container">
-                                <!-- Populated dynamically from /api/hcho/summary -->
-                            </div>
-                        </div>
+
                     </div>
                 </div>
 
                 <!-- Expandable More Info Toggle Button Bar -->
                 <div class="more-info-toggle-wrapper">
-                    <button type="button" id="btn-toggle-hcho-details" class="btn-more-info" aria-expanded="false" aria-controls="hcho-scientific-details">
+                    <button type="button" id="btn-toggle-hcho-details" class="btn-more-info" aria-expanded="false"
+                        aria-controls="hcho-scientific-details">
                         <span class="more-info-icon">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                                 <circle cx="12" cy="12" r="10"></circle>
                                 <line x1="12" y1="16" x2="12" y2="12"></line>
                                 <line x1="12" y1="8" x2="12.01" y2="8"></line>
                             </svg>
                         </span>
-                        <span id="btn-more-info-text">More Info: View Atmospheric Analytics &amp; Regional Breakdown</span>
-                        <svg class="chevron-icon" id="btn-more-info-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <span id="btn-more-info-text">More Info: View Atmospheric Analytics &amp; Regional
+                            Breakdown</span>
+                        <svg class="chevron-icon" id="btn-more-info-chevron" width="16" height="16" viewBox="0 0 24 24"
+                            fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                            stroke-linejoin="round">
                             <polyline points="6 9 12 15 18 9"></polyline>
                         </svg>
                     </button>
@@ -966,7 +994,8 @@
                                 <div class="corr-icon-box">📊</div>
                                 <div>
                                     <h3 class="corr-title">Bivariate Emission Correlation &amp; Regression</h3>
-                                    <span class="corr-subtitle">NASA VIIRS Fire Radiative Power (FRP) vs Sentinel-5P HCHO
+                                    <span class="corr-subtitle">NASA VIIRS Fire Radiative Power (FRP) vs Sentinel-5P
+                                        HCHO
                                         Column</span>
                                 </div>
                             </div>
@@ -1024,7 +1053,8 @@
                             </div>
                             <p class="corr-desc">
                                 Post-monsoon synoptic winds predominantly blow from northwest to southeast along the
-                                Indo-Gangetic trough. In calm, nocturnal inversion conditions, plumes accumulate near source
+                                Indo-Gangetic trough. In calm, nocturnal inversion conditions, plumes accumulate near
+                                source
                                 farmlands and forest fringes, whereas persistent daytime northwesterly winds transport
                                 elevated HCHO concentrations downwind across Eastern India.
                             </p>
@@ -1036,7 +1066,8 @@
                         <div class="guide-header-row">
                             <div>
                                 <h3 class="guide-main-title">Regional Agro-Ecological Burning Breakdown</h3>
-                                <p class="guide-main-sub">Comparative analysis of active fires, HCHO enhancements, and wind
+                                <p class="guide-main-sub">Comparative analysis of active fires, HCHO enhancements, and
+                                    wind
                                     speeds across Indian ecological regions.</p>
                             </div>
                             <span class="guide-verified-badge">
@@ -1134,6 +1165,9 @@
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <!-- Application Logic -->
     <script src="/static/app.js?v=3.0"></script>
+
+
+
 
 
 

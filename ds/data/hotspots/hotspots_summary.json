@@ -1,820 +1,1222 @@
 {
-  "timestamp_utc": "2026-10-14T06:27:41.287890+00:00",
+  "timestamp_utc": "2026-10-15T04:13:03.913811+00:00",
   "domain": "India (6.5N - 37.0N, 68.0E - 97.5E)",
   "metrics": {
-    "total_grid_cells": 14637,
-    "total_hotspots_99_pct": 1387,
-    "total_hotspots_95_pct": 1684,
-    "total_active_fires": 5702,
-    "total_frp_mw": 18653.9,
-    "mean_india_hcho_e15": 2.28,
-    "max_india_hcho_e15": 16.86,
-    "distinct_clusters_count": 12
+    "total_grid_cells": 8881,
+    "total_hotspots_99_pct": 2498,
+    "total_hotspots_95_pct": 2776,
+    "total_active_fires": 6688,
+    "total_frp_mw": 23888.4,
+    "mean_india_hcho_e15": 9.1,
+    "max_india_hcho_e15": 52.66,
+    "distinct_clusters_count": 21
   },
   "top_clusters": [
     {
-      "raw_id": 10,
-      "cluster_name": "Punjab-Haryana Agrarian Stubble Burning Core (Indo-Gangetic Basin)",
-      "region_tag": "North (Punjab/Haryana)",
-      "centroid": {
-        "lat": 29.8672,
-        "lon": 72.0155
-      },
-      "bounds": {
-        "min_lat": 25.0,
-        "max_lat": 33.0,
-        "min_lon": 68.0,
-        "max_lon": 75.75
-      },
-      "polygon_coords": [
-        [
-          68.0,
-          25.0
-        ],
-        [
-          69.0,
-          25.0
-        ],
-        [
-          75.0,
-          30.0
-        ],
-        [
-          75.75,
-          30.75
-        ],
-        [
-          75.75,
-          32.0
-        ],
-        [
-          75.25,
-          32.5
-        ],
-        [
-          74.5,
-          33.0
-        ],
-        [
-          73.25,
-          33.0
-        ],
-        [
-          72.25,
-          32.5
-        ],
-        [
-          70.0,
-          30.5
-        ],
-        [
-          69.5,
-          30.0
-        ],
-        [
-          68.0,
-          26.75
-        ],
-        [
-          68.0,
-          25.0
-        ]
-      ],
-      "cell_count": 354,
-      "total_active_fires": 969,
-      "total_frp_mw": 5297.2,
-      "mean_hcho_molec_cm2_e15": 3.77,
-      "peak_hcho_molec_cm2_e15": 16.86,
-      "mean_gi_z_score": 9.46,
-      "dominant_wind_dir_deg": 190.4,
-      "mean_wind_speed_ms": 2.98,
-      "cluster_id": 1
-    },
-    {
-      "raw_id": 6,
+      "raw_id": 1,
       "cluster_name": "Central-Eastern Forest Fire & Industrial Basin (Chhattisgarh / Odisha / Jharkhand)",
       "region_tag": "Eastern Forest & Mineral Basin",
       "centroid": {
-        "lat": 22.4394,
-        "lon": 84.7614
+        "lat": 22.607,
+        "lon": 81.3833
       },
       "bounds": {
-        "min_lat": 20.0,
-        "max_lat": 25.0,
-        "min_lon": 80.75,
-        "max_lon": 88.25
+        "min_lat": 6.5,
+        "max_lat": 35.25,
+        "min_lon": 68.0,
+        "max_lon": 97.5
       },
       "polygon_coords": [
         [
-          87.25,
-          25.0
+          95.25,
+          6.5
         ],
         [
-          82.5,
-          24.75
-        ],
-        [
-          82.0,
-          24.25
-        ],
-        [
-          80.75,
-          21.75
-        ],
-        [
-          80.75,
-          21.25
-        ],
-        [
-          81.5,
-          20.5
-        ],
-        [
-          84.75,
-          20.0
-        ],
-        [
-          85.75,
-          20.0
-        ],
-        [
-          88.25,
-          21.75
-        ],
-        [
-          88.25,
-          22.75
-        ],
-        [
-          88.0,
-          24.0
-        ],
-        [
-          87.25,
-          25.0
-        ]
-      ],
-      "cell_count": 396,
-      "total_active_fires": 2355,
-      "total_frp_mw": 5285.6,
-      "mean_hcho_molec_cm2_e15": 3.48,
-      "peak_hcho_molec_cm2_e15": 16.86,
-      "mean_gi_z_score": 6.74,
-      "dominant_wind_dir_deg": 162.5,
-      "mean_wind_speed_ms": 2.21,
-      "cluster_id": 2
-    },
-    {
-      "raw_id": 8,
-      "cluster_name": "Central Deciduous Forest Fire Belt (Madhya Pradesh / Bundelkhand)",
-      "region_tag": "Central India (MP/Bundelkhand)",
-      "centroid": {
-        "lat": 24.699,
-        "lon": 77.0323
-      },
-      "bounds": {
-        "min_lat": 20.75,
-        "max_lat": 29.0,
-        "min_lon": 74.0,
-        "max_lon": 80.5
-      },
-      "polygon_coords": [
-        [
-          76.5,
-          29.0
-        ],
-        [
-          74.0,
-          25.25
-        ],
-        [
-          74.75,
-          21.25
-        ],
-        [
-          75.25,
-          20.75
-        ],
-        [
-          76.25,
-          20.75
-        ],
-        [
-          77.75,
-          21.75
-        ],
-        [
-          78.0,
-          22.0
-        ],
-        [
-          79.0,
-          23.25
-        ],
-        [
-          80.25,
-          25.25
-        ],
-        [
-          80.5,
-          25.75
-        ],
-        [
-          80.25,
-          26.5
-        ],
-        [
-          77.75,
-          29.0
-        ],
-        [
-          76.5,
-          29.0
-        ]
-      ],
-      "cell_count": 441,
-      "total_active_fires": 685,
-      "total_frp_mw": 2459.9,
-      "mean_hcho_molec_cm2_e15": 3.09,
-      "peak_hcho_molec_cm2_e15": 16.86,
-      "mean_gi_z_score": 5.26,
-      "dominant_wind_dir_deg": 134.8,
-      "mean_wind_speed_ms": 3.2,
-      "cluster_id": 3
-    },
-    {
-      "raw_id": 1,
-      "cluster_name": "Deccan Plateau & Western Ghats Fringe",
-      "region_tag": "Deccan/Western Ghats",
-      "centroid": {
-        "lat": 14.9025,
-        "lon": 78.7415
-      },
-      "bounds": {
-        "min_lat": 10.75,
-        "max_lat": 18.0,
-        "min_lon": 75.25,
-        "max_lon": 81.25
-      },
-      "polygon_coords": [
-        [
-          75.25,
-          15.25
-        ],
-        [
-          75.5,
+          97.5,
           14.5
         ],
         [
-          79.0,
-          10.75
-        ],
-        [
-          79.75,
-          11.0
-        ],
-        [
-          80.0,
-          11.25
-        ],
-        [
-          80.75,
-          13.0
-        ],
-        [
-          81.25,
-          16.75
-        ],
-        [
-          81.25,
-          17.75
-        ],
-        [
-          80.75,
-          18.0
-        ],
-        [
-          80.0,
-          17.75
-        ],
-        [
-          75.5,
-          16.0
-        ],
-        [
-          75.25,
-          15.75
-        ],
-        [
-          75.25,
-          15.25
-        ]
-      ],
-      "cell_count": 323,
-      "total_active_fires": 418,
-      "total_frp_mw": 1444.5,
-      "mean_hcho_molec_cm2_e15": 2.85,
-      "peak_hcho_molec_cm2_e15": 16.86,
-      "mean_gi_z_score": 3.86,
-      "dominant_wind_dir_deg": 63.9,
-      "mean_wind_speed_ms": 4.92,
-      "cluster_id": 4
-    },
-    {
-      "raw_id": 3,
-      "cluster_name": "Vidarbha & Northern Deccan Forest Fringe (Maharashtra / Telangana)",
-      "region_tag": "Vidarbha & Northern Deccan",
-      "centroid": {
-        "lat": 19.4917,
-        "lon": 78.5458
-      },
-      "bounds": {
-        "min_lat": 17.75,
-        "max_lat": 21.75,
-        "min_lon": 77.0,
-        "max_lon": 79.75
-      },
-      "polygon_coords": [
-        [
-          79.75,
-          20.75
-        ],
-        [
-          79.75,
-          21.5
-        ],
-        [
-          79.25,
-          21.75
-        ],
-        [
-          79.0,
-          21.75
-        ],
-        [
-          78.5,
-          21.25
-        ],
-        [
-          77.25,
-          19.5
-        ],
-        [
-          77.0,
-          19.0
-        ],
-        [
-          77.0,
-          18.75
-        ],
-        [
-          77.5,
-          17.75
-        ],
-        [
-          78.5,
-          17.75
-        ],
-        [
-          79.0,
-          18.0
-        ],
-        [
-          79.5,
-          18.5
-        ],
-        [
-          79.75,
-          20.75
-        ]
-      ],
-      "cell_count": 120,
-      "total_active_fires": 214,
-      "total_frp_mw": 659.4,
-      "mean_hcho_molec_cm2_e15": 3.13,
-      "peak_hcho_molec_cm2_e15": 16.86,
-      "mean_gi_z_score": 4.68,
-      "dominant_wind_dir_deg": 44.6,
-      "mean_wind_speed_ms": 4.18,
-      "cluster_id": 5
-    },
-    {
-      "raw_id": 7,
-      "cluster_name": "Western Coastal & Gujarat Agricultural Belt",
-      "region_tag": "Western Gujarat Belt",
-      "centroid": {
-        "lat": 21.4167,
-        "lon": 72.8636
-      },
-      "bounds": {
-        "min_lat": 20.75,
-        "max_lat": 22.25,
-        "min_lon": 72.0,
-        "max_lon": 74.0
-      },
-      "polygon_coords": [
-        [
-          74.0,
-          21.5
-        ],
-        [
-          73.5,
-          22.25
-        ],
-        [
-          72.5,
-          22.0
-        ],
-        [
-          72.0,
-          21.75
-        ],
-        [
-          72.25,
-          21.0
-        ],
-        [
-          72.5,
-          20.75
-        ],
-        [
-          73.25,
-          20.75
-        ],
-        [
-          74.0,
-          21.5
-        ]
-      ],
-      "cell_count": 33,
-      "total_active_fires": 100,
-      "total_frp_mw": 563.2,
-      "mean_hcho_molec_cm2_e15": 2.89,
-      "peak_hcho_molec_cm2_e15": 16.86,
-      "mean_gi_z_score": 2.28,
-      "dominant_wind_dir_deg": 55.0,
-      "mean_wind_speed_ms": 3.49,
-      "cluster_id": 6
-    },
-    {
-      "raw_id": 11,
-      "cluster_name": "Regional Biomass Plume #12",
-      "region_tag": "Regional Corridor",
-      "centroid": {
-        "lat": 27.3393,
-        "lon": 72.3571
-      },
-      "bounds": {
-        "min_lat": 26.5,
-        "max_lat": 28.25,
-        "min_lon": 71.0,
-        "max_lon": 73.75
-      },
-      "polygon_coords": [
-        [
-          71.0,
-          27.25
-        ],
-        [
-          72.0,
-          26.5
-        ],
-        [
-          72.75,
-          26.5
-        ],
-        [
-          73.5,
+          97.5,
           26.75
         ],
         [
-          73.75,
-          27.25
-        ],
-        [
-          73.0,
-          28.0
-        ],
-        [
-          72.5,
+          97.0,
           28.25
         ],
         [
-          72.0,
-          28.25
+          95.75,
+          28.75
         ],
         [
-          71.5,
-          28.0
+          73.25,
+          35.25
         ],
         [
-          71.0,
-          27.25
+          68.25,
+          35.25
+        ],
+        [
+          68.0,
+          34.75
+        ],
+        [
+          68.0,
+          12.25
+        ],
+        [
+          93.5,
+          6.5
+        ],
+        [
+          95.25,
+          6.5
         ]
       ],
-      "cell_count": 56,
-      "total_active_fires": 105,
-      "total_frp_mw": 380.3,
-      "mean_hcho_molec_cm2_e15": 2.99,
-      "peak_hcho_molec_cm2_e15": 16.86,
-      "mean_gi_z_score": 3.6,
-      "dominant_wind_dir_deg": 18.5,
-      "mean_wind_speed_ms": 2.6,
-      "cluster_id": 7
+      "cell_count": 6021,
+      "total_active_fires": 6135,
+      "total_frp_mw": 22207.5,
+      "mean_hcho_molec_cm2_e15": 10.7,
+      "peak_hcho_molec_cm2_e15": 52.66,
+      "mean_gi_z_score": 2.26,
+      "dominant_wind_dir_deg": 102.6,
+      "mean_wind_speed_ms": 2.88,
+      "cluster_id": 1
+    },
+    {
+      "raw_id": 28,
+      "cluster_name": "Regional Biomass Plume #29",
+      "region_tag": "Regional Corridor",
+      "centroid": {
+        "lat": 20.7614,
+        "lon": 84.3636
+      },
+      "bounds": {
+        "min_lat": 20.25,
+        "max_lat": 21.25,
+        "min_lon": 83.25,
+        "max_lon": 85.5
+      },
+      "polygon_coords": [
+        [
+          83.5,
+          21.0
+        ],
+        [
+          83.25,
+          20.5
+        ],
+        [
+          83.75,
+          20.25
+        ],
+        [
+          84.75,
+          20.5
+        ],
+        [
+          85.5,
+          20.75
+        ],
+        [
+          85.5,
+          21.0
+        ],
+        [
+          85.0,
+          21.25
+        ],
+        [
+          83.5,
+          21.0
+        ]
+      ],
+      "cell_count": 22,
+      "total_active_fires": 352,
+      "total_frp_mw": 1087.0,
+      "mean_hcho_molec_cm2_e15": 8.38,
+      "peak_hcho_molec_cm2_e15": 11.52,
+      "mean_gi_z_score": -0.35,
+      "dominant_wind_dir_deg": 26.0,
+      "mean_wind_speed_ms": 2.13,
+      "cluster_id": 2
     },
     {
       "raw_id": 0,
       "cluster_name": "Deccan Plateau & Western Ghats Fringe",
       "region_tag": "Deccan/Western Ghats",
       "centroid": {
-        "lat": 8.5927,
-        "lon": 80.6129
+        "lat": 9.0325,
+        "lon": 79.2687
       },
       "bounds": {
-        "min_lat": 7.25,
-        "max_lat": 9.75,
-        "min_lon": 79.5,
-        "max_lon": 81.75
+        "min_lat": 6.5,
+        "max_lat": 12.75,
+        "min_lon": 77.25,
+        "max_lon": 81.5
       },
       "polygon_coords": [
         [
-          81.0,
-          7.25
-        ],
-        [
-          81.75,
-          7.25
-        ],
-        [
           81.5,
-          8.25
+          10.5
         ],
         [
           81.25,
-          9.0
-        ],
-        [
-          80.5,
-          9.75
-        ],
-        [
-          79.75,
-          9.75
-        ],
-        [
-          79.5,
-          9.5
-        ],
-        [
-          79.5,
-          9.0
-        ],
-        [
-          80.25,
-          8.0
+          12.25
         ],
         [
           81.0,
-          7.25
+          12.5
+        ],
+        [
+          80.25,
+          12.75
+        ],
+        [
+          79.75,
+          12.5
+        ],
+        [
+          78.75,
+          11.5
+        ],
+        [
+          77.5,
+          10.0
+        ],
+        [
+          77.25,
+          8.25
+        ],
+        [
+          77.25,
+          7.75
+        ],
+        [
+          77.5,
+          6.5
+        ],
+        [
+          80.0,
+          6.5
+        ],
+        [
+          81.0,
+          9.0
+        ],
+        [
+          81.5,
+          10.5
         ]
       ],
-      "cell_count": 62,
-      "total_active_fires": 59,
-      "total_frp_mw": 320.6,
-      "mean_hcho_molec_cm2_e15": 2.91,
-      "peak_hcho_molec_cm2_e15": 10.99,
-      "mean_gi_z_score": 2.6,
-      "dominant_wind_dir_deg": 56.9,
-      "mean_wind_speed_ms": 3.58,
-      "cluster_id": 8
+      "cell_count": 200,
+      "total_active_fires": 42,
+      "total_frp_mw": 137.4,
+      "mean_hcho_molec_cm2_e15": 7.78,
+      "peak_hcho_molec_cm2_e15": 26.9,
+      "mean_gi_z_score": -2.53,
+      "dominant_wind_dir_deg": 59.9,
+      "mean_wind_speed_ms": 3.89,
+      "cluster_id": 3
     },
     {
-      "raw_id": 5,
-      "cluster_name": "Regional Biomass Plume #6",
-      "region_tag": "Regional Corridor",
+      "raw_id": 17,
+      "cluster_name": "Deccan Plateau & Western Ghats Fringe",
+      "region_tag": "Deccan/Western Ghats",
       "centroid": {
-        "lat": 19.3472,
-        "lon": 71.3333
+        "lat": 11.3,
+        "lon": 77.675
       },
       "bounds": {
-        "min_lat": 19.0,
-        "max_lat": 19.75,
-        "min_lon": 70.75,
-        "max_lon": 72.0
+        "min_lat": 10.75,
+        "max_lat": 11.75,
+        "min_lon": 77.25,
+        "max_lon": 78.0
       },
       "polygon_coords": [
         [
-          71.5,
-          19.75
+          77.25,
+          11.5
         ],
         [
-          71.0,
-          19.75
+          77.5,
+          10.75
         ],
         [
-          70.75,
-          19.5
+          78.0,
+          11.25
         ],
         [
-          70.75,
-          19.25
+          78.0,
+          11.75
         ],
         [
-          71.0,
-          19.0
+          77.75,
+          11.75
         ],
         [
-          72.0,
-          19.0
-        ],
-        [
-          72.0,
-          19.25
-        ],
-        [
-          71.5,
-          19.75
+          77.25,
+          11.5
         ]
       ],
-      "cell_count": 18,
-      "total_active_fires": 24,
-      "total_frp_mw": 172.1,
-      "mean_hcho_molec_cm2_e15": 3.48,
-      "peak_hcho_molec_cm2_e15": 13.92,
-      "mean_gi_z_score": 2.68,
-      "dominant_wind_dir_deg": 61.0,
-      "mean_wind_speed_ms": 4.1,
-      "cluster_id": 9
+      "cell_count": 10,
+      "total_active_fires": 21,
+      "total_frp_mw": 60.9,
+      "mean_hcho_molec_cm2_e15": 8.2,
+      "peak_hcho_molec_cm2_e15": 11.21,
+      "mean_gi_z_score": -0.62,
+      "dominant_wind_dir_deg": 67.6,
+      "mean_wind_speed_ms": 4.93,
+      "cluster_id": 4
     },
     {
-      "raw_id": 9,
-      "cluster_name": "Western Coastal & Gujarat Agricultural Belt",
-      "region_tag": "Western Gujarat Belt",
-      "centroid": {
-        "lat": 22.9551,
-        "lon": 69.6026
-      },
-      "bounds": {
-        "min_lat": 22.25,
-        "max_lat": 23.75,
-        "min_lon": 68.75,
-        "max_lon": 70.25
-      },
-      "polygon_coords": [
-        [
-          70.25,
-          22.5
-        ],
-        [
-          70.25,
-          23.75
-        ],
-        [
-          69.5,
-          23.75
-        ],
-        [
-          69.0,
-          23.5
-        ],
-        [
-          68.75,
-          22.75
-        ],
-        [
-          69.0,
-          22.25
-        ],
-        [
-          70.0,
-          22.25
-        ],
-        [
-          70.25,
-          22.5
-        ]
-      ],
-      "cell_count": 39,
-      "total_active_fires": 60,
-      "total_frp_mw": 159.6,
-      "mean_hcho_molec_cm2_e15": 2.94,
-      "peak_hcho_molec_cm2_e15": 8.68,
-      "mean_gi_z_score": 2.76,
-      "dominant_wind_dir_deg": 45.6,
-      "mean_wind_speed_ms": 3.03,
-      "cluster_id": 10
-    },
-    {
-      "raw_id": 2,
-      "cluster_name": "Regional Biomass Plume #3",
+      "raw_id": 26,
+      "cluster_name": "Regional Biomass Plume #27",
       "region_tag": "Regional Corridor",
       "centroid": {
-        "lat": 17.9674,
-        "lon": 83.1304
+        "lat": 17.52,
+        "lon": 83.955
       },
       "bounds": {
-        "min_lat": 17.25,
-        "max_lat": 18.5,
+        "min_lat": 16.5,
+        "max_lat": 18.75,
         "min_lon": 82.5,
-        "max_lon": 83.75
+        "max_lon": 85.25
       },
       "polygon_coords": [
-        [
-          82.75,
-          18.5
-        ],
         [
           82.5,
+          16.5
+        ],
+        [
+          84.25,
+          16.5
+        ],
+        [
+          85.25,
           17.75
         ],
         [
-          82.75,
-          17.5
+          85.25,
+          18.5
         ],
         [
-          83.25,
+          84.75,
+          18.75
+        ],
+        [
+          84.0,
+          18.75
+        ],
+        [
+          82.5,
           17.25
         ],
         [
-          83.5,
-          17.5
-        ],
-        [
-          83.75,
-          18.25
-        ],
-        [
-          83.5,
-          18.5
-        ],
-        [
-          82.75,
-          18.5
+          82.5,
+          16.5
         ]
       ],
-      "cell_count": 23,
-      "total_active_fires": 43,
-      "total_frp_mw": 117.1,
-      "mean_hcho_molec_cm2_e15": 3.13,
-      "peak_hcho_molec_cm2_e15": 13.49,
-      "mean_gi_z_score": 2.04,
-      "dominant_wind_dir_deg": 34.4,
-      "mean_wind_speed_ms": 2.55,
-      "cluster_id": 11
+      "cell_count": 50,
+      "total_active_fires": 22,
+      "total_frp_mw": 53.5,
+      "mean_hcho_molec_cm2_e15": 8.0,
+      "peak_hcho_molec_cm2_e15": 14.01,
+      "mean_gi_z_score": -2.61,
+      "dominant_wind_dir_deg": 33.9,
+      "mean_wind_speed_ms": 2.43,
+      "cluster_id": 5
+    },
+    {
+      "raw_id": 30,
+      "cluster_name": "Regional Biomass Plume #31",
+      "region_tag": "Regional Corridor",
+      "centroid": {
+        "lat": 29.0291,
+        "lon": 88.3198
+      },
+      "bounds": {
+        "min_lat": 28.0,
+        "max_lat": 29.75,
+        "min_lon": 87.0,
+        "max_lon": 90.0
+      },
+      "polygon_coords": [
+        [
+          87.0,
+          29.0
+        ],
+        [
+          87.5,
+          28.25
+        ],
+        [
+          87.75,
+          28.0
+        ],
+        [
+          89.25,
+          28.5
+        ],
+        [
+          89.75,
+          28.75
+        ],
+        [
+          90.0,
+          29.25
+        ],
+        [
+          89.5,
+          29.5
+        ],
+        [
+          88.0,
+          29.75
+        ],
+        [
+          87.25,
+          29.75
+        ],
+        [
+          87.0,
+          29.25
+        ],
+        [
+          87.0,
+          29.0
+        ]
+      ],
+      "cell_count": 43,
+      "total_active_fires": 14,
+      "total_frp_mw": 23.3,
+      "mean_hcho_molec_cm2_e15": 7.26,
+      "peak_hcho_molec_cm2_e15": 13.32,
+      "mean_gi_z_score": -4.07,
+      "dominant_wind_dir_deg": 239.4,
+      "mean_wind_speed_ms": 1.49,
+      "cluster_id": 6
+    },
+    {
+      "raw_id": 32,
+      "cluster_name": "Punjab-Haryana Agrarian Stubble Burning Core (Indo-Gangetic Basin)",
+      "region_tag": "North (Punjab/Haryana)",
+      "centroid": {
+        "lat": 36.0625,
+        "lon": 68.9688
+      },
+      "bounds": {
+        "min_lat": 35.75,
+        "max_lat": 36.25,
+        "min_lon": 68.25,
+        "max_lon": 69.75
+      },
+      "polygon_coords": [
+        [
+          68.25,
+          36.0
+        ],
+        [
+          68.75,
+          35.75
+        ],
+        [
+          69.5,
+          36.0
+        ],
+        [
+          69.75,
+          36.25
+        ],
+        [
+          68.5,
+          36.25
+        ],
+        [
+          68.25,
+          36.0
+        ]
+      ],
+      "cell_count": 8,
+      "total_active_fires": 3,
+      "total_frp_mw": 3.4,
+      "mean_hcho_molec_cm2_e15": 5.52,
+      "peak_hcho_molec_cm2_e15": 6.5,
+      "mean_gi_z_score": -7.23,
+      "dominant_wind_dir_deg": 6.8,
+      "mean_wind_speed_ms": 2.56,
+      "cluster_id": 7
     },
     {
       "raw_id": 4,
-      "cluster_name": "Regional Biomass Plume #5",
-      "region_tag": "Regional Corridor",
+      "cluster_name": "Northeast Highland Shifting Cultivation (Assam / Mizoram)",
+      "region_tag": "Northeast India",
       "centroid": {
-        "lat": 18.8077,
-        "lon": 73.1346
+        "lat": 6.8333,
+        "lon": 92.0278
       },
       "bounds": {
-        "min_lat": 18.5,
-        "max_lat": 19.25,
-        "min_lon": 72.75,
-        "max_lon": 73.75
+        "min_lat": 6.5,
+        "max_lat": 7.0,
+        "min_lon": 91.5,
+        "max_lon": 92.5
+      },
+      "polygon_coords": [
+        [
+          91.5,
+          7.0
+        ],
+        [
+          92.0,
+          6.5
+        ],
+        [
+          92.5,
+          6.75
+        ],
+        [
+          92.5,
+          7.0
+        ],
+        [
+          91.5,
+          7.0
+        ]
+      ],
+      "cell_count": 9,
+      "total_active_fires": 0,
+      "total_frp_mw": 0.0,
+      "mean_hcho_molec_cm2_e15": 7.68,
+      "peak_hcho_molec_cm2_e15": 13.82,
+      "mean_gi_z_score": -4.1,
+      "dominant_wind_dir_deg": 38.1,
+      "mean_wind_speed_ms": 2.37,
+      "cluster_id": 8
+    },
+    {
+      "raw_id": 7,
+      "cluster_name": "Northeast Highland Shifting Cultivation (Assam / Mizoram)",
+      "region_tag": "Northeast India",
+      "centroid": {
+        "lat": 7.9881,
+        "lon": 89.6071
+      },
+      "bounds": {
+        "min_lat": 7.0,
+        "max_lat": 9.25,
+        "min_lon": 88.75,
+        "max_lon": 90.5
+      },
+      "polygon_coords": [
+        [
+          88.75,
+          7.5
+        ],
+        [
+          89.25,
+          7.0
+        ],
+        [
+          90.25,
+          7.25
+        ],
+        [
+          90.5,
+          7.5
+        ],
+        [
+          90.5,
+          8.0
+        ],
+        [
+          90.0,
+          9.0
+        ],
+        [
+          89.5,
+          9.25
+        ],
+        [
+          89.25,
+          9.25
+        ],
+        [
+          88.75,
+          9.0
+        ],
+        [
+          88.75,
+          7.5
+        ]
+      ],
+      "cell_count": 42,
+      "total_active_fires": 0,
+      "total_frp_mw": 0.0,
+      "mean_hcho_molec_cm2_e15": 7.23,
+      "peak_hcho_molec_cm2_e15": 13.44,
+      "mean_gi_z_score": -4.78,
+      "dominant_wind_dir_deg": 39.8,
+      "mean_wind_speed_ms": 2.45,
+      "cluster_id": 9
+    },
+    {
+      "raw_id": 8,
+      "cluster_name": "Regional Biomass Plume #9",
+      "region_tag": "Regional Corridor",
+      "centroid": {
+        "lat": 7.7857,
+        "lon": 87.2679
+      },
+      "bounds": {
+        "min_lat": 7.25,
+        "max_lat": 8.25,
+        "min_lon": 86.75,
+        "max_lon": 87.75
+      },
+      "polygon_coords": [
+        [
+          86.75,
+          7.75
+        ],
+        [
+          87.0,
+          7.25
+        ],
+        [
+          87.5,
+          7.5
+        ],
+        [
+          87.75,
+          7.75
+        ],
+        [
+          87.75,
+          8.25
+        ],
+        [
+          87.5,
+          8.25
+        ],
+        [
+          86.75,
+          8.0
+        ],
+        [
+          86.75,
+          7.75
+        ]
+      ],
+      "cell_count": 14,
+      "total_active_fires": 0,
+      "total_frp_mw": 0.0,
+      "mean_hcho_molec_cm2_e15": 7.84,
+      "peak_hcho_molec_cm2_e15": 10.64,
+      "mean_gi_z_score": -3.09,
+      "dominant_wind_dir_deg": 43.1,
+      "mean_wind_speed_ms": 2.62,
+      "cluster_id": 10
+    },
+    {
+      "raw_id": 9,
+      "cluster_name": "Northeast Highland Shifting Cultivation (Assam / Mizoram)",
+      "region_tag": "Northeast India",
+      "centroid": {
+        "lat": 7.9667,
+        "lon": 92.5833
+      },
+      "bounds": {
+        "min_lat": 7.25,
+        "max_lat": 8.5,
+        "min_lon": 92.0,
+        "max_lon": 93.25
+      },
+      "polygon_coords": [
+        [
+          92.75,
+          7.25
+        ],
+        [
+          93.25,
+          8.5
+        ],
+        [
+          92.75,
+          8.5
+        ],
+        [
+          92.0,
+          8.0
+        ],
+        [
+          92.25,
+          7.5
+        ],
+        [
+          92.75,
+          7.25
+        ]
+      ],
+      "cell_count": 15,
+      "total_active_fires": 0,
+      "total_frp_mw": 0.0,
+      "mean_hcho_molec_cm2_e15": 8.68,
+      "peak_hcho_molec_cm2_e15": 15.78,
+      "mean_gi_z_score": -3.55,
+      "dominant_wind_dir_deg": 37.0,
+      "mean_wind_speed_ms": 2.31,
+      "cluster_id": 11
+    },
+    {
+      "raw_id": 10,
+      "cluster_name": "Deccan Plateau & Western Ghats Fringe",
+      "region_tag": "Deccan/Western Ghats",
+      "centroid": {
+        "lat": 8.5395,
+        "lon": 76.3553
+      },
+      "bounds": {
+        "min_lat": 7.75,
+        "max_lat": 9.25,
+        "min_lon": 75.5,
+        "max_lon": 77.0
+      },
+      "polygon_coords": [
+        [
+          75.75,
+          9.25
+        ],
+        [
+          75.5,
+          8.75
+        ],
+        [
+          75.75,
+          8.5
+        ],
+        [
+          76.75,
+          7.75
+        ],
+        [
+          77.0,
+          7.75
+        ],
+        [
+          77.0,
+          8.25
+        ],
+        [
+          76.75,
+          8.75
+        ],
+        [
+          76.0,
+          9.25
+        ],
+        [
+          75.75,
+          9.25
+        ]
+      ],
+      "cell_count": 19,
+      "total_active_fires": 0,
+      "total_frp_mw": 0.0,
+      "mean_hcho_molec_cm2_e15": 7.98,
+      "peak_hcho_molec_cm2_e15": 10.72,
+      "mean_gi_z_score": -2.12,
+      "dominant_wind_dir_deg": 64.3,
+      "mean_wind_speed_ms": 4.39,
+      "cluster_id": 12
+    },
+    {
+      "raw_id": 11,
+      "cluster_name": "Regional Biomass Plume #12",
+      "region_tag": "Regional Corridor",
+      "centroid": {
+        "lat": 8.7344,
+        "lon": 71.125
+      },
+      "bounds": {
+        "min_lat": 8.25,
+        "max_lat": 9.25,
+        "min_lon": 70.5,
+        "max_lon": 71.75
+      },
+      "polygon_coords": [
+        [
+          70.5,
+          8.75
+        ],
+        [
+          70.75,
+          8.25
+        ],
+        [
+          71.25,
+          8.25
+        ],
+        [
+          71.5,
+          8.5
+        ],
+        [
+          71.75,
+          9.0
+        ],
+        [
+          71.25,
+          9.25
+        ],
+        [
+          71.0,
+          9.25
+        ],
+        [
+          70.5,
+          8.75
+        ]
+      ],
+      "cell_count": 16,
+      "total_active_fires": 0,
+      "total_frp_mw": 0.0,
+      "mean_hcho_molec_cm2_e15": 7.54,
+      "peak_hcho_molec_cm2_e15": 10.47,
+      "mean_gi_z_score": -3.13,
+      "dominant_wind_dir_deg": 64.4,
+      "mean_wind_speed_ms": 4.41,
+      "cluster_id": 13
+    },
+    {
+      "raw_id": 13,
+      "cluster_name": "Northeast Highland Shifting Cultivation (Assam / Mizoram)",
+      "region_tag": "Northeast India",
+      "centroid": {
+        "lat": 10.8975,
+        "lon": 96.5396
+      },
+      "bounds": {
+        "min_lat": 8.5,
+        "max_lat": 13.75,
+        "min_lon": 95.0,
+        "max_lon": 97.5
+      },
+      "polygon_coords": [
+        [
+          97.5,
+          8.5
+        ],
+        [
+          97.5,
+          13.75
+        ],
+        [
+          95.75,
+          12.5
+        ],
+        [
+          95.0,
+          10.0
+        ],
+        [
+          95.0,
+          9.5
+        ],
+        [
+          96.25,
+          8.5
+        ],
+        [
+          97.5,
+          8.5
+        ]
+      ],
+      "cell_count": 139,
+      "total_active_fires": 0,
+      "total_frp_mw": 0.0,
+      "mean_hcho_molec_cm2_e15": 9.03,
+      "peak_hcho_molec_cm2_e15": 18.01,
+      "mean_gi_z_score": -1.05,
+      "dominant_wind_dir_deg": 33.3,
+      "mean_wind_speed_ms": 2.12,
+      "cluster_id": 14
+    },
+    {
+      "raw_id": 14,
+      "cluster_name": "Regional Biomass Plume #15",
+      "region_tag": "Regional Corridor",
+      "centroid": {
+        "lat": 10.4946,
+        "lon": 69.4946
+      },
+      "bounds": {
+        "min_lat": 9.25,
+        "max_lat": 12.0,
+        "min_lon": 68.5,
+        "max_lon": 71.0
+      },
+      "polygon_coords": [
+        [
+          68.5,
+          11.75
+        ],
+        [
+          68.5,
+          9.25
+        ],
+        [
+          70.5,
+          9.75
+        ],
+        [
+          71.0,
+          10.0
+        ],
+        [
+          69.5,
+          11.75
+        ],
+        [
+          69.25,
+          12.0
+        ],
+        [
+          68.5,
+          11.75
+        ]
+      ],
+      "cell_count": 46,
+      "total_active_fires": 0,
+      "total_frp_mw": 0.0,
+      "mean_hcho_molec_cm2_e15": 9.06,
+      "peak_hcho_molec_cm2_e15": 15.09,
+      "mean_gi_z_score": -0.53,
+      "dominant_wind_dir_deg": 64.6,
+      "mean_wind_speed_ms": 4.46,
+      "cluster_id": 15
+    },
+    {
+      "raw_id": 15,
+      "cluster_name": "Regional Biomass Plume #16",
+      "region_tag": "Regional Corridor",
+      "centroid": {
+        "lat": 9.9554,
+        "lon": 85.6071
+      },
+      "bounds": {
+        "min_lat": 9.25,
+        "max_lat": 10.5,
+        "min_lon": 84.25,
+        "max_lon": 86.75
+      },
+      "polygon_coords": [
+        [
+          84.25,
+          10.5
+        ],
+        [
+          84.25,
+          10.0
+        ],
+        [
+          85.75,
+          9.25
+        ],
+        [
+          86.5,
+          9.25
+        ],
+        [
+          86.75,
+          9.5
+        ],
+        [
+          86.75,
+          10.0
+        ],
+        [
+          85.75,
+          10.5
+        ],
+        [
+          84.25,
+          10.5
+        ]
+      ],
+      "cell_count": 28,
+      "total_active_fires": 0,
+      "total_frp_mw": 0.0,
+      "mean_hcho_molec_cm2_e15": 7.21,
+      "peak_hcho_molec_cm2_e15": 13.05,
+      "mean_gi_z_score": -4.5,
+      "dominant_wind_dir_deg": 44.7,
+      "mean_wind_speed_ms": 2.73,
+      "cluster_id": 16
+    },
+    {
+      "raw_id": 16,
+      "cluster_name": "Regional Biomass Plume #17",
+      "region_tag": "Regional Corridor",
+      "centroid": {
+        "lat": 11.6033,
+        "lon": 73.7989
+      },
+      "bounds": {
+        "min_lat": 11.0,
+        "max_lat": 12.5,
+        "min_lon": 72.5,
+        "max_lon": 75.25
       },
       "polygon_coords": [
         [
           72.75,
-          19.0
+          12.25
         ],
         [
-          72.75,
-          18.5
+          72.5,
+          11.0
         ],
         [
-          73.25,
-          18.5
+          74.5,
+          11.0
+        ],
+        [
+          75.25,
+          11.5
+        ],
+        [
+          75.25,
+          11.75
+        ],
+        [
+          75.0,
+          12.0
         ],
         [
           73.75,
-          18.75
-        ],
-        [
-          73.5,
-          19.0
-        ],
-        [
-          73.0,
-          19.25
+          12.5
         ],
         [
           72.75,
-          19.0
+          12.25
+        ]
+      ],
+      "cell_count": 46,
+      "total_active_fires": 0,
+      "total_frp_mw": 0.0,
+      "mean_hcho_molec_cm2_e15": 9.28,
+      "peak_hcho_molec_cm2_e15": 15.21,
+      "mean_gi_z_score": -0.11,
+      "dominant_wind_dir_deg": 71.6,
+      "mean_wind_speed_ms": 5.7,
+      "cluster_id": 17
+    },
+    {
+      "raw_id": 18,
+      "cluster_name": "Regional Biomass Plume #19",
+      "region_tag": "Regional Corridor",
+      "centroid": {
+        "lat": 11.625,
+        "lon": 84.4583
+      },
+      "bounds": {
+        "min_lat": 11.25,
+        "max_lat": 12.0,
+        "min_lon": 84.0,
+        "max_lon": 85.0
+      },
+      "polygon_coords": [
+        [
+          84.0,
+          11.75
+        ],
+        [
+          84.0,
+          11.25
+        ],
+        [
+          84.25,
+          11.25
+        ],
+        [
+          85.0,
+          11.5
+        ],
+        [
+          85.0,
+          12.0
+        ],
+        [
+          84.75,
+          12.0
+        ],
+        [
+          84.0,
+          11.75
+        ]
+      ],
+      "cell_count": 12,
+      "total_active_fires": 0,
+      "total_frp_mw": 0.0,
+      "mean_hcho_molec_cm2_e15": 6.4,
+      "peak_hcho_molec_cm2_e15": 7.12,
+      "mean_gi_z_score": -6.52,
+      "dominant_wind_dir_deg": 45.7,
+      "mean_wind_speed_ms": 2.81,
+      "cluster_id": 18
+    },
+    {
+      "raw_id": 22,
+      "cluster_name": "Regional Biomass Plume #23",
+      "region_tag": "Regional Corridor",
+      "centroid": {
+        "lat": 12.9231,
+        "lon": 84.0962
+      },
+      "bounds": {
+        "min_lat": 12.5,
+        "max_lat": 13.5,
+        "min_lon": 83.25,
+        "max_lon": 85.0
+      },
+      "polygon_coords": [
+        [
+          85.0,
+          12.75
+        ],
+        [
+          84.25,
+          13.5
+        ],
+        [
+          83.5,
+          13.25
+        ],
+        [
+          83.25,
+          13.0
+        ],
+        [
+          84.25,
+          12.5
+        ],
+        [
+          84.75,
+          12.5
+        ],
+        [
+          85.0,
+          12.75
         ]
       ],
       "cell_count": 13,
-      "total_active_fires": 36,
-      "total_frp_mw": 92.7,
-      "mean_hcho_molec_cm2_e15": 3.53,
-      "peak_hcho_molec_cm2_e15": 16.86,
-      "mean_gi_z_score": 2.25,
-      "dominant_wind_dir_deg": 65.2,
-      "mean_wind_speed_ms": 4.66,
-      "cluster_id": 12
+      "total_active_fires": 0,
+      "total_frp_mw": 0.0,
+      "mean_hcho_molec_cm2_e15": 6.59,
+      "peak_hcho_molec_cm2_e15": 8.05,
+      "mean_gi_z_score": -6.63,
+      "dominant_wind_dir_deg": 45.0,
+      "mean_wind_speed_ms": 2.8,
+      "cluster_id": 19
+    },
+    {
+      "raw_id": 23,
+      "cluster_name": "Regional Biomass Plume #24",
+      "region_tag": "Regional Corridor",
+      "centroid": {
+        "lat": 13.9792,
+        "lon": 73.4792
+      },
+      "bounds": {
+        "min_lat": 13.5,
+        "max_lat": 14.5,
+        "min_lon": 73.0,
+        "max_lon": 74.0
+      },
+      "polygon_coords": [
+        [
+          73.0,
+          13.75
+        ],
+        [
+          73.75,
+          13.5
+        ],
+        [
+          74.0,
+          14.25
+        ],
+        [
+          73.25,
+          14.5
+        ],
+        [
+          73.0,
+          13.75
+        ]
+      ],
+      "cell_count": 12,
+      "total_active_fires": 0,
+      "total_frp_mw": 0.0,
+      "mean_hcho_molec_cm2_e15": 14.05,
+      "peak_hcho_molec_cm2_e15": 25.48,
+      "mean_gi_z_score": 4.15,
+      "dominant_wind_dir_deg": 75.5,
+      "mean_wind_speed_ms": 6.78,
+      "cluster_id": 20
+    },
+    {
+      "raw_id": 27,
+      "cluster_name": "Regional Biomass Plume #28",
+      "region_tag": "Regional Corridor",
+      "centroid": {
+        "lat": 19.2368,
+        "lon": 86.5658
+      },
+      "bounds": {
+        "min_lat": 18.5,
+        "max_lat": 19.75,
+        "min_lon": 85.75,
+        "max_lon": 87.5
+      },
+      "polygon_coords": [
+        [
+          86.75,
+          19.75
+        ],
+        [
+          85.75,
+          19.25
+        ],
+        [
+          86.0,
+          18.75
+        ],
+        [
+          86.25,
+          18.5
+        ],
+        [
+          86.5,
+          18.5
+        ],
+        [
+          87.5,
+          19.75
+        ],
+        [
+          86.75,
+          19.75
+        ]
+      ],
+      "cell_count": 19,
+      "total_active_fires": 0,
+      "total_frp_mw": 0.0,
+      "mean_hcho_molec_cm2_e15": 8.81,
+      "peak_hcho_molec_cm2_e15": 14.03,
+      "mean_gi_z_score": -0.91,
+      "dominant_wind_dir_deg": 30.0,
+      "mean_wind_speed_ms": 2.13,
+      "cluster_id": 21
     }
   ]
 }

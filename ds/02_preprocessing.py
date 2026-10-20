@@ -7,6 +7,7 @@ Step 02: Satellite QA Filtering & Spatio-Temporal Alignment Pipeline.
 """
 
 import json
+import time
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -226,6 +227,17 @@ def integrate_era5_winds_and_export(df: pd.DataFrame):
         }
         geojson_features.append(feature)
 
+    # Read ingestion metadata if present
+    ingest_meta = {}
+    ingest_meta_file = RAW_DIR / "ingestion_metadata.json"
+    if ingest_meta_file.exists():
+        try:
+            with open(ingest_meta_file, "r") as f:
+                ingest_meta = json.load(f)
+        except Exception:
+            pass
+    obs_date_str = ingest_meta.get("s5p_observation_date", "Latest Daily Pass")
+
     geojson_path = PROCESSED_DIR / "india_hcho_aligned.geojson"
     with open(geojson_path, "w") as f:
         json.dump({
@@ -233,6 +245,8 @@ def integrate_era5_winds_and_export(df: pd.DataFrame):
             "metadata": {
                 "title": "Sentinel-5P HCHO & VIIRS Biomass Burning Grid (India)",
                 "generated_at": datetime.now(timezone.utc).isoformat(),
+                "observation_date": obs_date_str,
+                "s5p_stream": ingest_meta.get("s5p_stream", "Operational"),
                 "feature_count": len(geojson_features)
             },
             "features": geojson_features
@@ -267,23 +281,34 @@ def integrate_era5_winds_and_export(df: pd.DataFrame):
         with open(fire_geojson_path, "w") as f:
             json.dump({
                 "type": "FeatureCollection",
-                "metadata": {"total_fires": len(raw_fires), "display_fires": len(fire_features)},
+                "metadata": {
+                    "title": "NASA VIIRS/MODIS Active Fires (India)",
+                    "observation_date": obs_date_str,
+                    "total_fires": len(raw_fires),
+                    "display_fires": len(fire_features)
+                },
                 "features": fire_features
             }, f)
         print(f"  [OK] Exported Active Fire Pinpoint GeoJSON: {fire_geojson_path}")
 
 
-def run_pipeline():
+def run_pipeline() -> dict:
     print("=" * 80)
     print("DS STEP 02: SATELLITE QA SCREENING & SPATIO-TEMPORAL HARMONIZATION")
     print("=" * 80)
+    start_t = time.time()
     df_hcho = load_and_filter_s5p_hcho()
     df_merged = aggregate_viirs_fires_to_grid(df_hcho)
     integrate_era5_winds_and_export(df_merged)
+    duration = time.time() - start_t
     print("\n" + "=" * 80)
-    print("[SUCCESS] Preprocessing completed. Analysis-ready products saved to:")
+    print(f"[SUCCESS] Preprocessing completed in {duration:.2f} seconds. Analysis-ready products saved to:")
     print(f"  {PROCESSED_DIR}")
     print("=" * 80)
+    return {
+        "preprocessed_cells": len(df_merged),
+        "duration_seconds": round(duration, 2)
+    }
 
 
 if __name__ == "__main__":

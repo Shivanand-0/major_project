@@ -1,114 +1,133 @@
 {
-  "timestamp_utc": "2026-10-15T04:32:46.258104+00:00",
+  "timestamp_utc": "2026-10-20T17:47:53.911452+00:00",
+  "last_updated_ist": "2026-10-20 23:17:53 IST",
+  "observation_date": "20261020",
+  "s5p_stream": "NRTI",
+  "cadence": "Daily Operational Satellite Feed",
   "project_aim": "Identify and map HCHO (Formaldehyde) hotspots over whole India during biomass burning seasons using Sentinel-5P satellite observations and spatio-temporal analysis techniques. Analyze the relationship between biomass burning, HCHO concentrations, and pollutant transport using MODIS/VIIRS fire count data and reanalysis meteorological datasets (ERA5).",
   "satellites_and_models": {
-    "hcho_sensor": "Sentinel-5P TROPOMI UV-VIS Spectrometer (Level-2 OFFL)",
+    "hcho_sensor": "Sentinel-5P TROPOMI UV-VIS Spectrometer (NRTI Level-3)",
     "fire_sensors": [
       "NASA VIIRS (Suomi-NPP & NOAA-20, 375m)",
       "NASA MODIS (Terra & Aqua, 1km)"
     ],
-    "meteorology_model": "ECMWF ERA5 Hourly Atmospheric Reanalysis"
+    "meteorology_model": "ECMWF ERA5 & Open-Meteo Synoptic Atmospheric Fields"
   },
   "statistical_correlation": {
-    "sample_size_cells": 8745,
-    "pearson_r": 0.0781,
-    "pearson_p_value": 2.5954436179359883e-13,
-    "spearman_rho": 0.2383,
-    "spearman_p_value": 3.4841441510545013e-113,
-    "fire_count_pearson_r": 0.0663,
+    "sample_size_cells": 6683,
+    "pearson_r": 0.1017,
+    "pearson_p_value": 8.02275317181447e-17,
+    "spearman_rho": 0.2682,
+    "spearman_p_value": 1.8389952158854966e-110,
+    "fire_count_pearson_r": 0.1107,
     "regression": {
-      "slope": 0.01376,
-      "intercept": 9.174,
-      "r_squared": 0.0061,
-      "std_err": 0.00188
-    }
+      "slope": 0.01233,
+      "intercept": 8.995,
+      "r_squared": 0.0103,
+      "std_err": 0.00148
+    },
+    "r_squared": 0.0103
   },
   "wind_transport_analysis": {
-    "calm_layer_mean_hcho": 7.94,
-    "dispersion_layer_mean_hcho": 10.95,
-    "stagnation_enhancement_pct": -27.4,
+    "calm_layer_mean_hcho": 8.52,
+    "dispersion_layer_mean_hcho": 8.96,
+    "stagnation_enhancement_pct": -4.9,
     "dominant_synoptic_corridor": "Northwest to Southeast (Punjab -> UP -> Bihar -> Bay of Bengal)",
-    "mean_zonal_wind_u_ms": -1.24,
-    "mean_meridional_wind_v_ms": -1.98,
-    "mean_india_wind_speed_ms": 2.86
+    "mean_zonal_wind_u_ms": -1.86,
+    "mean_meridional_wind_v_ms": -1.3,
+    "mean_india_wind_speed_ms": 2.78,
+    "calm_mean_hcho": 8.52,
+    "windy_mean_hcho": 8.96
+  },
+  "spatial_clustering_evaluation": {
+    "method": "DBSCAN (Haversine Spherical Geodesic)",
+    "eps_km": 35.0,
+    "min_samples": 15,
+    "silhouette_score": 0.5295,
+    "calinski_harabasz_score": 14403.8,
+    "davies_bouldin_score": 0.413,
+    "total_clusters": 58,
+    "clustered_fires": 8144,
+    "noise_fires": 1295,
+    "quality_assessment": "High Spatial Separation (Silhouette Score > 0.50 confirms distinct regional agricultural stubble and forest fire plumes)"
   },
   "regional_breakdown": [
     {
       "eco_zone": "Northern/Western Arid Region",
-      "grid_cells": 5072,
-      "total_active_fires": 3956,
-      "total_frp_mw": 13250.9,
-      "mean_hcho_e15": 8.9,
-      "peak_hcho_e15": 27.98,
-      "pearson_r": 0.047,
-      "mean_wind_speed_ms": 2.73,
-      "dominant_wind_dir_deg": 90.0
+      "grid_cells": 3902,
+      "total_active_fires": 3858,
+      "total_frp_mw": 13883.6,
+      "mean_hcho_e15": 8.04,
+      "peak_hcho_e15": 21.3,
+      "pearson_r": 0.091,
+      "mean_wind_speed_ms": 2.81,
+      "dominant_wind_dir_deg": 48.0
     },
     {
       "eco_zone": "Punjab-Haryana Agricultural Basin (High Stubble Burning)",
-      "grid_cells": 246,
-      "total_active_fires": 742,
-      "total_frp_mw": 3684.1,
-      "mean_hcho_e15": 16.48,
-      "peak_hcho_e15": 32.16,
-      "pearson_r": 0.092,
-      "mean_wind_speed_ms": 3.55,
-      "dominant_wind_dir_deg": 348.6
-    },
-    {
-      "eco_zone": "Central India Deciduous Forest (Vidarbha/MP/Chhattisgarh)",
-      "grid_cells": 493,
-      "total_active_fires": 1033,
-      "total_frp_mw": 2685.4,
-      "mean_hcho_e15": 10.45,
-      "peak_hcho_e15": 22.73,
-      "pearson_r": 0.148,
-      "mean_wind_speed_ms": 3.32,
-      "dominant_wind_dir_deg": 79.8
+      "grid_cells": 243,
+      "total_active_fires": 1340,
+      "total_frp_mw": 6777.5,
+      "mean_hcho_e15": 13.68,
+      "peak_hcho_e15": 25.18,
+      "pearson_r": 0.048,
+      "mean_wind_speed_ms": 2.05,
+      "dominant_wind_dir_deg": 26.8
     },
     {
       "eco_zone": "Central & Eastern Indo-Gangetic Plain (Transport Corridor)",
-      "grid_cells": 622,
-      "total_active_fires": 524,
-      "total_frp_mw": 2329.2,
-      "mean_hcho_e15": 12.07,
-      "peak_hcho_e15": 33.48,
-      "pearson_r": -0.002,
-      "mean_wind_speed_ms": 3.24,
-      "dominant_wind_dir_deg": 276.8
+      "grid_cells": 660,
+      "total_active_fires": 1109,
+      "total_frp_mw": 3962.4,
+      "mean_hcho_e15": 12.6,
+      "peak_hcho_e15": 29.24,
+      "pearson_r": -0.051,
+      "mean_wind_speed_ms": 1.73,
+      "dominant_wind_dir_deg": 206.3
+    },
+    {
+      "eco_zone": "Central India Deciduous Forest (Vidarbha/MP/Chhattisgarh)",
+      "grid_cells": 511,
+      "total_active_fires": 895,
+      "total_frp_mw": 2259.8,
+      "mean_hcho_e15": 11.69,
+      "peak_hcho_e15": 19.89,
+      "pearson_r": -0.051,
+      "mean_wind_speed_ms": 3.5,
+      "dominant_wind_dir_deg": 57.6
     },
     {
       "eco_zone": "Northeast Highlands (Shifting Jhum Cultivation)",
-      "grid_cells": 462,
-      "total_active_fires": 292,
-      "total_frp_mw": 1388.7,
-      "mean_hcho_e15": 9.2,
-      "peak_hcho_e15": 18.41,
-      "pearson_r": 0.016,
-      "mean_wind_speed_ms": 2.09,
-      "dominant_wind_dir_deg": 64.5
-    },
-    {
-      "eco_zone": "Southern Peninsular Region",
-      "grid_cells": 1895,
-      "total_active_fires": 104,
-      "total_frp_mw": 338.5,
-      "mean_hcho_e15": 7.17,
-      "peak_hcho_e15": 52.66,
-      "pearson_r": -0.009,
-      "mean_wind_speed_ms": 2.93,
-      "dominant_wind_dir_deg": 44.5
+      "grid_cells": 408,
+      "total_active_fires": 210,
+      "total_frp_mw": 777.0,
+      "mean_hcho_e15": 9.17,
+      "peak_hcho_e15": 22.89,
+      "pearson_r": 0.033,
+      "mean_wind_speed_ms": 2.65,
+      "dominant_wind_dir_deg": 48.2
     },
     {
       "eco_zone": "Western Ghats & Deccan Plateau",
-      "grid_cells": 91,
-      "total_active_fires": 37,
-      "total_frp_mw": 211.5,
-      "mean_hcho_e15": 12.65,
-      "peak_hcho_e15": 22.36,
-      "pearson_r": -0.011,
-      "mean_wind_speed_ms": 5.77,
-      "dominant_wind_dir_deg": 70.7
+      "grid_cells": 128,
+      "total_active_fires": 122,
+      "total_frp_mw": 305.9,
+      "mean_hcho_e15": 9.85,
+      "peak_hcho_e15": 16.26,
+      "pearson_r": 0.052,
+      "mean_wind_speed_ms": 3.85,
+      "dominant_wind_dir_deg": 48.9
+    },
+    {
+      "eco_zone": "Southern Peninsular Region",
+      "grid_cells": 1059,
+      "total_active_fires": 16,
+      "total_frp_mw": 33.9,
+      "mean_hcho_e15": 6.53,
+      "peak_hcho_e15": 21.53,
+      "pearson_r": 0.062,
+      "mean_wind_speed_ms": 3.08,
+      "dominant_wind_dir_deg": 103.0
     }
   ]
 }

@@ -2615,3 +2615,24 @@ body.light-theme {
     transform: scale(1.1) !important;
     box-shadow: 0 6px 16px rgba(124, 58, 237, 0.55) !important;
 }
+
+@keyframes hcho-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.hcho-refresh-btn.spinning svg {
+    animation: hcho-spin 0.8s linear infinite;
+}
+
+.hcho-refresh-btn:hover {
+    opacity: 1 !important;
+    background: rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Ensure Leaflet divIcon for wind vectors has no white box or borders */
+.wind-arrow-icon {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}

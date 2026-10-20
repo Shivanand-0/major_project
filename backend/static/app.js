@@ -227,7 +227,7 @@ function setReadingCardLoading(isLoading, locationName = null) {
             bodyEl.style.display = 'none';
             bodyEl.classList.remove('fade-in');
             if (subtitleEl) {
-                subtitleEl.textContent = locationName 
+                subtitleEl.textContent = locationName
                     ? `Querying atmospheric telemetry & running AI models for ${locationName}...`
                     : 'Querying atmospheric telemetry feeds & spatiotemporal ML models...';
             }
@@ -856,20 +856,84 @@ async function loadHchoAnalyticsData() {
 function renderHchoSummary(data) {
     if (!data) return;
 
+    // Update Sync Status Pill with Authentic Observation Date
+    const elSyncStatus = document.getElementById('hcho-sync-status');
+    if (elSyncStatus) {
+        let obsDateText = '';
+        if (data.observation_date) {
+            const raw = String(data.observation_date).replace(/-/g, '');
+            if (raw.length === 8) {
+                const y = raw.slice(0, 4);
+                const m = raw.slice(4, 6);
+                const d = raw.slice(6, 8);
+                const dt = new Date(`${y}-${m}-${d}T00:00:00Z`);
+                obsDateText = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            } else {
+                obsDateText = data.observation_date;
+            }
+        }
+        elSyncStatus.textContent = obsDateText
+            ? `Daily Pass: ${obsDateText} · Satellite & Wind Synced`
+            : 'Satellite & ERA5 Synced · India Domain';
+    }
+
+    // Bind Refresh Button
+    const refreshBtn = document.getElementById('hcho-refresh-btn');
+    if (refreshBtn && !refreshBtn.dataset.bound) {
+        refreshBtn.dataset.bound = 'true';
+        refreshBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            refreshBtn.classList.add('spinning');
+            if (elSyncStatus) elSyncStatus.textContent = 'Syncing Daily Satellite Feed...';
+            try {
+                const res = await fetch('/api/hcho/refresh?force=true', { method: 'POST' });
+                if (res.ok) {
+                    let attempts = 0;
+                    const pollInterval = setInterval(async () => {
+                        attempts++;
+                        try {
+                            const stRes = await fetch('/api/hcho/status');
+                            if (stRes.ok) {
+                                const st = await stRes.json();
+                                if (st.is_current && attempts > 3) {
+                                    clearInterval(pollInterval);
+                                    await loadHchoAnalyticsData();
+                                    refreshBtn.classList.remove('spinning');
+                                    return;
+                                }
+                            }
+                        } catch (err) { }
+                        if (attempts >= 15) {
+                            clearInterval(pollInterval);
+                            await loadHchoAnalyticsData();
+                            refreshBtn.classList.remove('spinning');
+                        }
+                    }, 3000);
+                }
+            } catch (err) {
+                console.error('Error refreshing HCHO daily feed:', err);
+                refreshBtn.classList.remove('spinning');
+            }
+        });
+    }
+
     // Top 4 KPIs
     const elFires = document.getElementById('hcho-kpi-fires');
-    if (elFires && data.total_active_fires != null) {
-        elFires.textContent = data.total_active_fires.toLocaleString();
+    const totalFires = data.total_active_fires != null ? data.total_active_fires : data.metrics?.total_active_fires;
+    if (elFires && totalFires != null) {
+        elFires.textContent = totalFires.toLocaleString();
     }
 
     const elFrp = document.getElementById('hcho-kpi-frp');
-    if (elFrp && data.total_fire_radiative_power_mw != null) {
-        elFrp.textContent = `${data.total_fire_radiative_power_mw.toLocaleString(undefined, { maximumFractionDigits: 1 })} MW`;
+    const totalFrp = data.total_fire_radiative_power_mw != null ? data.total_fire_radiative_power_mw : data.metrics?.total_frp_mw;
+    if (elFrp && totalFrp != null) {
+        elFrp.textContent = `${totalFrp.toLocaleString(undefined, { maximumFractionDigits: 1 })} MW`;
     }
 
     const elPeak = document.getElementById('hcho-kpi-peak');
-    if (elPeak && data.peak_hcho_column_10_15 != null) {
-        elPeak.textContent = `${data.peak_hcho_column_10_15.toFixed(1)} × 10¹⁵`;
+    const peakHcho = data.peak_hcho_column_10_15 != null ? data.peak_hcho_column_10_15 : data.metrics?.max_india_hcho_e15;
+    if (elPeak && peakHcho != null) {
+        elPeak.textContent = `${peakHcho.toFixed(1)} × 10¹⁵`;
     }
 
     const elR = document.getElementById('hcho-kpi-r');
@@ -891,6 +955,17 @@ function renderHchoSummary(data) {
         cR2.textContent = `R² = ${data.correlation.r_squared.toFixed(3)}`;
     }
 
+    const cSil = document.getElementById('corr-val-sil');
+    const silVal = data.metrics?.silhouette_score ?? data.clustering_evaluation?.silhouette_score ?? data.spatial_clustering_evaluation?.silhouette_score;
+    if (cSil && silVal != null) {
+        cSil.textContent = `S = ${silVal.toFixed(3)}`;
+    }
+    const subSil = document.getElementById('corr-sub-sil');
+    const nClust = data.metrics?.distinct_clusters_count ?? data.clustering_evaluation?.total_clusters ?? (data.top_clusters ? data.top_clusters.length : null);
+    if (subSil && nClust != null) {
+        subSil.textContent = `${nClust} Discrete Regional Clusters`;
+    }
+
     // Transport card values
     const tCalm = document.getElementById('transport-calm-val');
     if (tCalm && data.wind_transport?.calm_mean_hcho != null) {
@@ -907,7 +982,12 @@ function renderHchoSummary(data) {
     const topClusters = data.top_clusters || data.dbscan_clusters?.top_clusters || [];
 
     if (clustersCountTag) {
-        clustersCountTag.textContent = `${topClusters.length} Clusters`;
+        if (silVal != null) {
+            clustersCountTag.textContent = `${topClusters.length} Clusters · Sil: ${silVal.toFixed(2)}`;
+            clustersCountTag.title = `DBSCAN Silhouette Score: ${silVal.toFixed(4)} (Benchmark >0.50 confirms strong cluster separation)`;
+        } else {
+            clustersCountTag.textContent = `${topClusters.length} Clusters`;
+        }
     }
 
     if (clustersContainer && topClusters.length > 0) {
@@ -1096,6 +1176,48 @@ function renderFiresLayer(geojson) {
     });
 }
 
+function getWindFlowDescription(deg, u = null, v = null) {
+    if (deg == null || isNaN(deg)) return { label: 'Variable', origin: 'Variable', dest: 'Variable', flowAngle: 0 };
+
+    // Normalize meteorological degree (direction wind comes FROM, 0° = N, 90° = E, 180° = S, 270° = W)
+    const norm = ((deg % 360) + 360) % 360;
+
+    // Downstream flow heading angle (where wind blows TO, 0° = N, 90° = E, 180° = S, 270° = W)
+    let flowAngle = 0;
+    if (u != null && v != null && (u !== 0 || v !== 0)) {
+        flowAngle = ((Math.atan2(u, v) * 180 / Math.PI) + 360) % 360;
+    } else {
+        flowAngle = (norm + 180) % 360;
+    }
+
+    // Standard atmospheric transport direction:
+    // Wind coming from NE (e.g. 22.5° - 78.75°) flows toward SW (NE ➔ SW)
+    let label = "NW ➔ SE";
+    let origin = "NW";
+    let dest = "SE";
+
+    if (norm >= 337.5 || norm < 22.5) {
+        label = "N ➔ S"; origin = "N"; dest = "S";
+    } else if (norm < 78.75) {
+        label = "NE ➔ SW"; origin = "NE"; dest = "SW";
+    } else if (norm < 101.25) {
+        label = "E ➔ W"; origin = "E"; dest = "W";
+    } else if (norm < 157.5) {
+        label = "SE ➔ NW"; origin = "SE"; dest = "NW";
+    } else if (norm < 202.5) {
+        label = "S ➔ N"; origin = "S"; dest = "N";
+    } else if (norm < 258.75) {
+        label = "SW ➔ NE"; origin = "SW"; dest = "NE";
+    } else if (norm < 281.25) {
+        label = "W ➔ E"; origin = "W"; dest = "E";
+    } else {
+        label = "NW ➔ SE"; origin = "NW"; dest = "SE";
+    }
+
+    return { label, origin, dest, angle: norm, flowAngle };
+}
+
+
 function renderWindLayer(geojson) {
     if (!windLayerGroup || !geojson || !geojson.features) return;
     windLayerGroup.clearLayers();
@@ -1112,10 +1234,16 @@ function renderWindLayer(geojson) {
 
         const speed = p.wind_speed_ms != null ? p.wind_speed_ms : (p.wind_speed_m_s != null ? p.wind_speed_m_s : 3.0);
         const dir = p.wind_dir_deg != null ? p.wind_dir_deg : 315;
+        const u = p.u_component;
+        const v = p.v_component;
 
-        // SVG Arrow rotated by direction
+        // Downstream advection vector (pointing in the direction the air and emissions are transported)
+        const flowInfo = getWindFlowDescription(dir, u, v);
+        const flowAngle = flowInfo.flowAngle;
+
+        // SVG Arrow rotated by downstream flow direction
         const arrowHtml = `
-            <div style="transform: rotate(${dir}deg); display:flex; align-items:center; justify-content:center; opacity:0.65; pointer-events:none;">
+            <div style="transform: rotate(${flowAngle}deg); display:flex; align-items:center; justify-content:center; opacity:0.80; pointer-events:none;">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="12" y1="19" x2="12" y2="5"></line>
                     <polyline points="5 12 12 5 19 12"></polyline>
@@ -1208,6 +1336,10 @@ function sampleIndiaLocation(lat, lon, knownProps = null) {
 
     let windSpeed = 3.2;
     let windDir = 315;
+    let uComp = null;
+    let vComp = null;
+    let transportDesc = null;
+
     if (hchoCache.wind?.features) {
         let minWindD = 999;
         hchoCache.wind.features.forEach(f => {
@@ -1220,11 +1352,20 @@ function sampleIndiaLocation(lat, lon, knownProps = null) {
                 minWindD = d;
                 windSpeed = p.wind_speed_ms != null ? p.wind_speed_ms : (p.wind_speed_m_s != null ? p.wind_speed_m_s : 3.2);
                 windDir = p.wind_dir_deg != null ? p.wind_dir_deg : 315;
+                uComp = p.u_component != null ? p.u_component : null;
+                vComp = p.v_component != null ? p.v_component : null;
+                transportDesc = p.transport_direction || null;
             }
         });
     }
 
-    const dirCard = windDir >= 300 || windDir <= 45 ? "NW ➔ SE" : windDir < 135 ? "NE ➔ SW" : "W ➔ E";
+    const windInfo = getWindFlowDescription(windDir, uComp, vComp);
+    const flowAngle = windInfo.flowAngle;
+    let dirCard = windInfo.label;
+    if (transportDesc) {
+        const match = transportDesc.match(/\(([^)]+)\)/);
+        if (match) dirCard = match[1];
+    }
 
     // Update Right Inspector Panel
     const elCoords = document.getElementById('hcho-insp-coords');
@@ -1258,7 +1399,17 @@ function sampleIndiaLocation(lat, lon, knownProps = null) {
     if (elWind) elWind.textContent = `${windSpeed.toFixed(1)} m/s`;
 
     const elWindDir = document.getElementById('hcho-insp-wind-dir');
-    if (elWindDir) elWindDir.textContent = `${Math.round(windDir)}° (${dirCard})`;
+    if (elWindDir) {
+        elWindDir.innerHTML = `
+            <span style="display:inline-flex; align-items:center; gap:4px;">
+                ${Math.round(windDir)}° (${dirCard})
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transform: rotate(${flowAngle}deg); vertical-align: middle; display: inline-block;">
+                    <line x1="12" y1="19" x2="12" y2="5"></line>
+                    <polyline points="5 12 12 5 19 12"></polyline>
+                </svg>
+            </span>
+        `;
+    }
 
     // Place or move animated SVG pin marker
     if (indiaClickMarker) {
@@ -1314,7 +1465,13 @@ function sampleIndiaLocation(lat, lon, knownProps = null) {
                 </div>
                 <div class="popup-mini-item">
                     <span class="p-lbl">ERA5 Advection</span>
-                    <span class="p-val">${windSpeed.toFixed(1)} m/s · ${dirCard}</span>
+                    <span class="p-val" style="display:inline-flex; align-items:center; gap:5px;">
+                        <span>${windSpeed.toFixed(1)} m/s · ${dirCard}</span>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transform: rotate(${flowAngle}deg); flex-shrink: 0;">
+                            <line x1="12" y1="19" x2="12" y2="5"></line>
+                            <polyline points="5 12 12 5 19 12"></polyline>
+                        </svg>
+                    </span>
                 </div>
             </div>
             <div class="popup-footer-status">

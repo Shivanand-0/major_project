@@ -9,16 +9,18 @@ import sys
 import json
 from pathlib import Path
 from typing import Dict, Any, Optional
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-# Ensure backend root is on sys.path
+# Ensure backend and project root are on sys.path
 BACKEND_DIR = Path(__file__).resolve().parent
-if str(BACKEND_DIR) not in sys.path:
-    sys.path.insert(0, str(BACKEND_DIR))
+PROJECT_ROOT = BACKEND_DIR.parent
+for p in [str(BACKEND_DIR), str(PROJECT_ROOT), str(PROJECT_ROOT / "ds")]:
+    if p not in sys.path:
+        sys.path.insert(0, p)
 
 from backend_config import (
     VIDARBHA_NODES,
@@ -28,11 +30,45 @@ from backend_config import (
 )
 from services.estimator import get_estimator
 
+try:
+    from ds.pipeline_runner import get_pipeline_status, run_daily_pipeline
+except Exception:
+    get_pipeline_status = None
+    run_daily_pipeline = None
+
+import time
+import threading
+
+def _daily_scheduler_worker():
+    """
+    Background daemon thread that periodically checks if a new daily satellite pass is ready.
+    Runs once on startup (if data is stale), then sleeps and checks every 4 hours.
+    """
+    time.sleep(3)  # Let server finish starting up
+    while True:
+        try:
+            if get_pipeline_status and run_daily_pipeline:
+                st = get_pipeline_status()
+                if not st.get("is_current"):
+                    print("[SCHEDULER] Daily HCHO satellite data is stale. Initiating automatic daily update...")
+                    run_daily_pipeline(force_refresh=False)
+                else:
+                    print(f"[SCHEDULER] Daily HCHO data is up to date (pass: {st.get('observation_date')}). Next check in 4h.")
+        except Exception as err:
+            print(f"[SCHEDULER ERROR] Daily check failed: {err}")
+        # Sleep for 4 hours before checking next overpass
+        time.sleep(4 * 3600)
+
 app = FastAPI(
     title="Virtual Air Quality Estimation System (Vidarbha Grid)",
     description="Operational ML microservice mapping ECMWF meteorology and Copernicus CAMS chemical tracers to physical CPCB India NAQI standards.",
     version="1.0.0"
 )
+
+@app.on_event("startup")
+async def start_daily_scheduler():
+    t = threading.Thread(target=_daily_scheduler_worker, daemon=True, name="HCHO-Daily-Scheduler")
+    t.start()
 
 # Enable CORS for frontend integrations
 app.add_middleware(
@@ -42,6 +78,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def add_cache_control_headers(request: Request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/static/") or request.url.path == "/" or request.url.path.startswith("/api/hcho/"):
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
 
 # Static files directory
 STATIC_DIR = BACKEND_DIR / "static"
@@ -169,6 +214,46 @@ async def get_cpcb_standards():
 # ==============================================================================
 DS_DATA_DIR = BACKEND_DIR.parent / "ds" / "data"
 
+@app.get("/api/hcho/status")
+async def get_hcho_pipeline_status():
+    """Returns real-time data freshness, observation date, and sync status of the daily HCHO pipeline."""
+    if get_pipeline_status:
+        return get_pipeline_status()
+    summary_file = DS_DATA_DIR / "hotspots" / "hotspots_summary.json"
+    if summary_file.exists():
+        with open(summary_file, "r") as f:
+            data = json.load(f)
+        return {
+            "status": "ready",
+            "observation_date": data.get("observation_date", "Operational Satellite Pass"),
+            "last_updated_ist": data.get("last_updated_ist", "Recent"),
+            "is_current": True
+        }
+    return {"status": "missing", "is_current": False}
+
+
+@app.post("/api/hcho/refresh")
+async def refresh_hcho_daily_pipeline(background_tasks: BackgroundTasks, force: bool = Query(True, description="Force re-ingestion and clustering")):
+    """Triggers the automated daily ingestion, preprocessing, Getis-Ord Gi*, and DBSCAN clustering pipeline."""
+    if not run_daily_pipeline:
+        raise HTTPException(status_code=500, detail="Pipeline runner module not available.")
+    
+    # Run in background to avoid blocking client
+    def run_worker():
+        try:
+            print("[BACKEND] Executing automated daily HCHO hotspot pipeline...")
+            run_daily_pipeline(force_refresh=force)
+        except Exception as e:
+            print(f"[BACKEND ERROR] Background pipeline execution failed: {e}")
+
+    background_tasks.add_task(run_worker)
+    return {
+        "message": "Automated daily HCHO, wind & fire pipeline execution started in background.",
+        "status": "processing",
+        "forced": force
+    }
+
+
 @app.get("/api/hcho/summary")
 async def get_hcho_summary():
     """Returns Pan-India S5P HCHO, VIIRS fire count, and Getis-Ord hotspot analytical summary."""
@@ -186,6 +271,31 @@ async def get_hcho_summary():
             corr_data = json.load(f)
             data["correlation"] = corr_data.get("statistical_correlation", {})
             data["wind_transport"] = corr_data.get("wind_transport_analysis", {})
+            data["spatial_clustering_evaluation"] = corr_data.get("spatial_clustering_evaluation", {})
+            if "clustering_evaluation" not in data and "spatial_clustering_evaluation" in corr_data:
+                data["clustering_evaluation"] = corr_data["spatial_clustering_evaluation"]
+
+    # Ensure top-level KPIs for frontend cards
+    metrics = data.get("metrics", {})
+    if "total_active_fires" not in data or data["total_active_fires"] is None:
+        data["total_active_fires"] = metrics.get("total_active_fires", 0)
+    if "total_fire_radiative_power_mw" not in data or data["total_fire_radiative_power_mw"] is None:
+        data["total_fire_radiative_power_mw"] = metrics.get("total_frp_mw", 0)
+    if "peak_hcho_column_10_15" not in data or data["peak_hcho_column_10_15"] is None:
+        data["peak_hcho_column_10_15"] = metrics.get("max_india_hcho_e15", 0)
+
+    # Ensure correlation keys
+    if "correlation" in data and isinstance(data["correlation"], dict):
+        reg = data["correlation"].get("regression", {})
+        if "r_squared" not in data["correlation"] and "r_squared" in reg:
+            data["correlation"]["r_squared"] = reg["r_squared"]
+
+    # Ensure wind transport keys
+    if "wind_transport" in data and isinstance(data["wind_transport"], dict):
+        if "calm_mean_hcho" not in data["wind_transport"] and "calm_layer_mean_hcho" in data["wind_transport"]:
+            data["wind_transport"]["calm_mean_hcho"] = data["wind_transport"]["calm_layer_mean_hcho"]
+        if "windy_mean_hcho" not in data["wind_transport"] and "dispersion_layer_mean_hcho" in data["wind_transport"]:
+            data["wind_transport"]["windy_mean_hcho"] = data["wind_transport"]["dispersion_layer_mean_hcho"]
     
     if "top_clusters" in data and "dbscan_clusters" not in data:
         data["dbscan_clusters"] = {"top_clusters": data["top_clusters"]}

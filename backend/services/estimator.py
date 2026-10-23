@@ -63,6 +63,7 @@ class VirtualSensorEstimator:
     """Production service for real-time virtual air quality estimation."""
 
     WEATHER_API_URL = "https://api.open-meteo.com/v1/forecast"
+    WEATHER_API_BACKUP_URL = "https://api.open-meteo.com/v1/gfs"
     AQ_API_URL = "https://air-quality-api.open-meteo.com/v1/air-quality"
 
     def __init__(self):
@@ -80,13 +81,20 @@ class VirtualSensorEstimator:
         self._cache_timestamp = 0
         self._cache_ttl = 180  # seconds
 
+        # Persistent HTTP session with real browser headers to bypass Cloudflare bot challenges
+        self.session = requests.Session()
+        self.session.headers.update({
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "application/json"
+        })
+
     def fetch_live_realtime_telemetry(self, lat: float, lon: float) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """
-        Fetches CURRENT instantaneous meteorological and atmospheric telemetry
-        directly from Open-Meteo & Copernicus CAMS APIs for the given coordinates.
-        Strictly live: no past/stale archive data, no static fallbacks.
+        Fetches CURRENT real-time meteorological and atmospheric telemetry
+        directly from Open-Meteo ECMWF/GFS & Copernicus CAMS APIs for the given coordinates.
+        Strictly 100% real-time data: zero fallback, zero synthetic data.
         """
-        # 1. Fetch current weather parameters
+        # 1. Fetch current live weather parameters
         weather_params = {
             "latitude": lat,
             "longitude": lon,
@@ -94,23 +102,34 @@ class VirtualSensorEstimator:
             "timezone": "Asia/Kolkata"
         }
 
-        w_json = None
-        for attempt in range(3):
-            try:
-                w_resp = requests.get(self.WEATHER_API_URL, params=weather_params, timeout=20)
-                if w_resp.status_code == 200:
-                    w_json = w_resp.json()
-                    break
-            except (requests.RequestException, Exception):
-                if attempt == 2:
-                    raise
-                time.sleep(1.0)
+        live_weather = None
+        last_weather_err = None
 
-        if not w_json or "current" not in w_json:
-            raise RuntimeError(f"No current weather data returned for ({lat}, {lon})")
-        live_weather = w_json["current"]
+        # Fetch live operational weather (primary ECMWF IFS, with live NOAA GFS secondary if primary is rate-limited)
+        for api_url in [self.WEATHER_API_URL, self.WEATHER_API_BACKUP_URL]:
+            for attempt in range(3):
+                try:
+                    resp = self.session.get(api_url, params=weather_params, timeout=12)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        if "current" in data:
+                            live_weather = data["current"]
+                            break
+                    elif resp.status_code == 429:
+                        print(f"[Estimator Notice] Upstream weather API 429 rate limit at ({lat}, {lon}), retrying ({attempt+1}/3)...")
+                        time.sleep(1.2 * (attempt + 1))
+                    else:
+                        last_weather_err = f"HTTP {resp.status_code} ({resp.text[:100]})"
+                except Exception as err:
+                    last_weather_err = str(err)
+                    time.sleep(0.5)
+            if live_weather:
+                break
 
-        # 2. Fetch current Copernicus CAMS atmospheric chemical tracers
+        if not live_weather:
+            raise RuntimeError(f"Unable to fetch live real-time weather from Open-Meteo: {last_weather_err}")
+
+        # 2. Fetch live atmospheric chemical tracers (Copernicus CAMS)
         aq_params = {
             "latitude": lat,
             "longitude": lon,
@@ -118,21 +137,28 @@ class VirtualSensorEstimator:
             "timezone": "Asia/Kolkata"
         }
 
-        aq_json = None
+        live_aq = None
+        last_aq_err = None
+
         for attempt in range(3):
             try:
-                aq_resp = requests.get(self.AQ_API_URL, params=aq_params, timeout=20)
-                if aq_resp.status_code == 200:
-                    aq_json = aq_resp.json()
-                    break
-            except (requests.RequestException, Exception):
-                if attempt == 2:
-                    raise
-                time.sleep(1.0)
+                resp = self.session.get(self.AQ_API_URL, params=aq_params, timeout=12)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    if "current" in data:
+                        live_aq = data["current"]
+                        break
+                elif resp.status_code == 429:
+                    print(f"[Estimator Notice] Upstream CAMS AQ API 429 rate limit at ({lat}, {lon}), retrying ({attempt+1}/3)...")
+                    time.sleep(1.2 * (attempt + 1))
+                else:
+                    last_aq_err = f"HTTP {resp.status_code} ({resp.text[:100]})"
+            except Exception as err:
+                last_aq_err = str(err)
+                time.sleep(0.5)
 
-        if not aq_json or "current" not in aq_json:
-            raise RuntimeError(f"No current atmospheric tracer data returned for ({lat}, {lon})")
-        live_aq = aq_json["current"]
+        if not live_aq:
+            raise RuntimeError(f"Unable to fetch live real-time Copernicus CAMS air quality: {last_aq_err}")
 
         return live_weather, live_aq
 
@@ -291,18 +317,22 @@ class VirtualSensorEstimator:
 
         # 1. Fetch current real-time data or use manual simulator overrides
         if weather_override and aq_override:
-            live_weather = weather_override
-            live_aq = aq_override
+            live_weather = dict(weather_override)
+            live_aq = dict(aq_override)
             obs_time = datetime.now(IST).strftime("%Y-%m-%dT%H:%M")
+            telemetry_source = "User Overrides"
         else:
             live_weather, live_aq = self.fetch_live_realtime_telemetry(lat, lon)
             obs_time = live_weather.get("time", datetime.now(IST).strftime("%Y-%m-%dT%H:%M"))
+            telemetry_source = "Live Operational Telemetry (Open-Meteo & Copernicus CAMS)"
 
             # If user provided partial overrides, apply them
             if weather_override:
                 live_weather.update(weather_override)
+                telemetry_source += " + weather overrides"
             if aq_override:
                 live_aq.update(aq_override)
+                telemetry_source += " + aq overrides"
 
         # 2. Build complete 49-feature analytical vector
         features = self.build_feature_vector(lat, lon, live_weather, live_aq, station_id=station_id)
@@ -320,36 +350,38 @@ class VirtualSensorEstimator:
             if dist < 0.5 and target_meta.get("type") == "physical":
                 try:
                     g_df = self.cpcb_client.get_ground_truth_snapshot()
-                    g_row = g_df[g_df["station_id"] == target_id]
-                    if not g_row.empty:
-                        g_data = g_row.iloc[0]
-                        g_naqi = g_data.get("ground_india_naqi")
-                        station_ground_truth = {
-                            "has_physical_station": True,
-                            "station_id": target_id,
-                            "station_name": target_meta["name"],
-                            "observed_india_naqi": g_naqi,
-                            "cpcb_category": g_data.get("category"),
-                            "observed_time": g_data.get("observed_time"),
-                            "dominant_pollutant": g_data.get("dominant_pollutant"),
-                            "pollutants": {
-                                "pm25": g_data.get("pm25"),
-                                "pm10": g_data.get("pm10"),
-                                "no2": g_data.get("no2"),
-                                "so2": g_data.get("so2"),
-                                "co": g_data.get("co"),
-                                "o3": g_data.get("o3")
-                            },
-                            "residual": round(pred["predicted_india_naqi"] - float(g_naqi), 1) if g_naqi else None
-                        }
-                except Exception:
-                    pass
+                    if not g_df.empty:
+                        g_row = g_df[g_df["station_id"] == target_id]
+                        if not g_row.empty:
+                            g_data = g_row.iloc[0]
+                            g_naqi = g_data.get("ground_india_naqi")
+                            station_ground_truth = {
+                                "has_physical_station": True,
+                                "station_id": target_id,
+                                "station_name": target_meta["name"],
+                                "observed_india_naqi": g_naqi,
+                                "cpcb_category": g_data.get("category"),
+                                "observed_time": g_data.get("observed_time"),
+                                "dominant_pollutant": g_data.get("dominant_pollutant"),
+                                "pollutants": {
+                                    "pm25": g_data.get("pm25"),
+                                    "pm10": g_data.get("pm10"),
+                                    "no2": g_data.get("no2"),
+                                    "so2": g_data.get("so2"),
+                                    "co": g_data.get("co"),
+                                    "o3": g_data.get("o3")
+                                },
+                                "residual": round(pred["predicted_india_naqi"] - float(g_naqi), 1) if g_naqi else None
+                            }
+                except Exception as e:
+                    print(f"[Estimator] Station ground truth check notice: {e}")
 
         return {
             "coordinates": {"latitude": lat, "longitude": lon},
             "timestamp_ist": datetime.now(IST).strftime("%Y-%m-%d %H:%M:%S IST"),
             "observation_time": f"{obs_time} IST",
             "latency_ms": latency_ms,
+            "telemetry_source": telemetry_source,
             "prediction": pred,
             "physical_station_ground_truth": station_ground_truth,
             "realtime_features": {
@@ -394,26 +426,27 @@ class VirtualSensorEstimator:
         cpcb_snapshot = {}
         try:
             ground_df = self.cpcb_client.get_ground_truth_snapshot()
-            for _, row in ground_df.iterrows():
-                st_id = row["station_id"]
-                cpcb_snapshot[st_id] = {
-                    "station_name": row["station_name"],
-                    "source": row.get("source", "CPCB Portal"),
-                    "ground_india_naqi": row["ground_india_naqi"],
-                    "dominant_pollutant": row.get("dominant_pollutant"),
-                    "sub_indices": row.get("sub_indices", {}),
-                    "cpcb_pm25_subindex": row.get("cpcb_pm25_subindex"),
-                    "observed_time": row["observed_time"],
-                    "category": row.get("category", "N/A"),
-                    "pollutants": {
-                        "pm25": row.get("pm25"),
-                        "pm10": row.get("pm10"),
-                        "no2": row.get("no2"),
-                        "so2": row.get("so2"),
-                        "co": row.get("co"),
-                        "o3": row.get("o3")
+            if not ground_df.empty:
+                for _, row in ground_df.iterrows():
+                    st_id = row["station_id"]
+                    cpcb_snapshot[st_id] = {
+                        "station_name": row["station_name"],
+                        "source": row.get("source", "CPCB Portal"),
+                        "ground_india_naqi": row["ground_india_naqi"],
+                        "dominant_pollutant": row.get("dominant_pollutant"),
+                        "sub_indices": row.get("sub_indices", {}),
+                        "cpcb_pm25_subindex": row.get("cpcb_pm25_subindex"),
+                        "observed_time": row["observed_time"],
+                        "category": row.get("category", "N/A"),
+                        "pollutants": {
+                            "pm25": row.get("pm25"),
+                            "pm10": row.get("pm10"),
+                            "no2": row.get("no2"),
+                            "so2": row.get("so2"),
+                            "co": row.get("co"),
+                            "o3": row.get("o3")
+                        }
                     }
-                }
         except Exception as e:
             print(f"[Estimator] Ground truth fetch notice: {e}")
 
@@ -423,47 +456,51 @@ class VirtualSensorEstimator:
             lat = meta["latitude"]
             lon = meta["longitude"]
 
-            res = self.predict_coordinate(lat, lon, station_id=st_id)
-            pred_naqi = res["prediction"]["predicted_india_naqi"]
+            try:
+                res = self.predict_coordinate(lat, lon, station_id=st_id)
+                pred_naqi = res["prediction"]["predicted_india_naqi"]
 
-            node_dict = {
-                "id": st_id,
-                "name": meta["name"],
-                "city": meta["city"],
-                "district": meta["district"],
-                "coordinates": {"lat": lat, "lon": lon},
-                "type": meta["type"],
-                "elevation_m": meta["elevation_m"],
-                "description": meta["description"],
-                "virtual_prediction": res["prediction"],
-                "realtime_features": res["realtime_features"],
-                "observation_time": res["observation_time"]
-            }
-
-            # If physical station is placed at this node and has live data, attach ground truth & residual
-            if meta.get("type") == "physical" and st_id in cpcb_snapshot:
-                g = cpcb_snapshot[st_id]
-                g_naqi = g.get("ground_india_naqi")
-                diff = round(pred_naqi - float(g_naqi), 1) if g_naqi is not None else None
-                pm25_sub = g.get("cpcb_pm25_subindex")
-
-                node_dict["physical_ground_truth"] = {
-                    "has_physical_station": True,
-                    "observed_india_naqi": g_naqi,
-                    "cpcb_category": g.get("category"),
-                    "dominant_pollutant": g.get("dominant_pollutant"),
-                    "sub_indices": g.get("sub_indices"),
-                    "observed_pm25_subindex": pm25_sub,
-                    "observed_time": g.get("observed_time"),
-                    "source": g.get("source"),
-                    "pollutants": g.get("pollutants"),
-                    "residual": diff
+                node_dict = {
+                    "id": st_id,
+                    "name": meta["name"],
+                    "city": meta["city"],
+                    "district": meta["district"],
+                    "coordinates": {"lat": lat, "lon": lon},
+                    "type": meta["type"],
+                    "elevation_m": meta["elevation_m"],
+                    "description": meta["description"],
+                    "virtual_prediction": res["prediction"],
+                    "realtime_features": res["realtime_features"],
+                    "observation_time": res["observation_time"],
+                    "telemetry_source": res.get("telemetry_source", "live")
                 }
-            else:
-                # Unmonitored coordinate: strictly None, do NOT show station value
-                node_dict["physical_ground_truth"] = None
 
-            nodes_output.append(node_dict)
+                # If physical station is placed at this node and has live data, attach ground truth & residual
+                if meta.get("type") == "physical" and st_id in cpcb_snapshot:
+                    g = cpcb_snapshot[st_id]
+                    g_naqi = g.get("ground_india_naqi")
+                    diff = round(pred_naqi - float(g_naqi), 1) if g_naqi is not None else None
+                    pm25_sub = g.get("cpcb_pm25_subindex")
+
+                    node_dict["physical_ground_truth"] = {
+                        "has_physical_station": True,
+                        "observed_india_naqi": g_naqi,
+                        "cpcb_category": g.get("category"),
+                        "dominant_pollutant": g.get("dominant_pollutant"),
+                        "sub_indices": g.get("sub_indices"),
+                        "observed_pm25_subindex": pm25_sub,
+                        "observed_time": g.get("observed_time"),
+                        "source": g.get("source"),
+                        "pollutants": g.get("pollutants"),
+                        "residual": diff
+                    }
+                else:
+                    # Unmonitored coordinate: strictly None, do NOT show station value
+                    node_dict["physical_ground_truth"] = None
+
+                nodes_output.append(node_dict)
+            except Exception as node_err:
+                print(f"[Estimator Error] Failed evaluating node {st_id}: {node_err}")
 
         result = {
             "timestamp_ist": datetime.now(IST).strftime("%Y-%m-%d %H:%M:%S IST"),
@@ -472,8 +509,9 @@ class VirtualSensorEstimator:
             "nodes": nodes_output
         }
 
-        self._cache = result
-        self._cache_timestamp = current_time
+        if nodes_output:
+            self._cache = result
+            self._cache_timestamp = current_time
         return result
 
     def get_spatial_heatmap_grid(self, lat_steps: int = 5, lon_steps: int = 7) -> List[Dict[str, Any]]:

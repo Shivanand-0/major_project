@@ -460,10 +460,11 @@ def ingest_era5_reanalysis_meteorology() -> pd.DataFrame:
             f"hourly=temperature_2m,relative_humidity_2m,surface_pressure,wind_speed_10m,wind_direction_10m"
         )
         
-        success = False
+        headers = {"User-Agent": "VidarbhaAirQualitySensor/2.0 (Academic Environmental Research)"}
+        time.sleep(0.3)  # Gentle rate pacing to respect upstream Open-Meteo limits
         for fetch_url in [url_live, url_archive]:
             try:
-                resp = requests.get(fetch_url, timeout=12)
+                resp = requests.get(fetch_url, headers=headers, timeout=12)
                 if resp.status_code == 200:
                     data = resp.json().get("hourly", {})
                     times = data.get("time", [])

@@ -42,9 +42,9 @@ import threading
 def _daily_scheduler_worker():
     """
     Background daemon thread that periodically checks if a new daily satellite pass is ready.
-    Runs once on startup (if data is stale), then sleeps and checks every 4 hours.
+    Waits 90s after startup so server can boot and serve initial traffic smoothly, then checks every 4 hours.
     """
-    time.sleep(3)  # Let server finish starting up
+    time.sleep(90)  # Let server finish starting up and serve initial requests
     while True:
         try:
             if get_pipeline_status and run_daily_pipeline:
@@ -95,8 +95,8 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
 class CoordinatePredictionRequest(BaseModel):
-    latitude: float = Field(..., ge=18.0, le=23.0, description="Latitude within Maharashtra/Vidarbha region")
-    longitude: float = Field(..., ge=75.0, le=82.0, description="Longitude within Maharashtra/Vidarbha region")
+    latitude: float = Field(..., ge=15.0, le=26.0, description="Latitude within Maharashtra/Central India")
+    longitude: float = Field(..., ge=72.0, le=85.0, description="Longitude within Maharashtra/Central India")
     temperature_override: Optional[float] = Field(None, description="Optional temperature in Celsius")
     humidity_override: Optional[float] = Field(None, description="Optional relative humidity (%)")
     wind_speed_override: Optional[float] = Field(None, description="Optional wind speed in km/h")
@@ -145,6 +145,8 @@ async def get_vidarbha_nodes(refresh: bool = Query(False, description="Force ref
         data = estimator.get_all_nodes_status(force_refresh=refresh)
         return data
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Failed to fetch live node states: {str(e)}")
 
 
@@ -182,6 +184,8 @@ async def predict_custom_coordinate(req: CoordinatePredictionRequest):
         )
         return result
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Inference error: {str(e)}")
 
 

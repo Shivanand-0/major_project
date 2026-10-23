@@ -282,7 +282,14 @@ async function selectCoordinate(lat, lon, name = null, cachedNode = null) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ latitude: lat, longitude: lon })
             });
-            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            if (!resp.ok) {
+                let errDetail = `HTTP ${resp.status}`;
+                try {
+                    const errJson = await resp.json();
+                    if (errJson && errJson.detail) errDetail = errJson.detail;
+                } catch(e) {}
+                throw new Error(errDetail);
+            }
             const data = await resp.json();
             prediction = data.prediction;
             features = data.realtime_features;
@@ -296,8 +303,8 @@ async function selectCoordinate(lat, lon, name = null, cachedNode = null) {
         updateTargetPin(lat, lon, name, prediction, features);
     } catch (err) {
         if (evalId !== currentEvaluationId) return;
-        console.error('Failed to evaluate coordinate:', err);
-        showToast(`Evaluation note: Using cached baseline for (${lat}, ${lon})`);
+        console.error('Failed to evaluate coordinate in real-time:', err);
+        showToast(`Real-time evaluation notice: ${err.message || 'Unable to fetch live telemetry'}`);
         setReadingCardLoading(false);
     }
 }
@@ -417,7 +424,7 @@ async function fetchAllNodes() {
             selectCoordinate(nagpurNode.coordinates.lat, nagpurNode.coordinates.lon, nagpurNode.name, nagpurNode);
         }
     } catch (err) {
-        console.warn('Live node stream note:', err);
+        console.error('Live node stream error:', err);
     }
 }
 

@@ -30,11 +30,12 @@ if __name__ == "__main__":
     
     # Render provides the port dynamically. Fallback to 8000 for local use.
     port = int(os.environ.get("PORT", 8000))
+    is_prod = bool(os.environ.get("RENDER")) or os.environ.get("ENV") == "production"
     
     uvicorn.run(
         "main:app", 
         host="0.0.0.0", 
         port=port, 
-        reload=True, 
+        reload=not is_prod, 
         app_dir=str(BACKEND_DIR)
     )

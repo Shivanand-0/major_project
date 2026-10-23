@@ -103,6 +103,8 @@ class CoordinatePredictionRequest(BaseModel):
     wind_dir_override: Optional[float] = Field(None, description="Optional wind direction (0-360 deg)")
     pm25_override: Optional[float] = Field(None, description="Optional CAMS PM2.5 in ug/m3")
     pm10_override: Optional[float] = Field(None, description="Optional CAMS PM10 in ug/m3")
+    live_weather: Optional[Dict[str, Any]] = Field(None, description="Live meteorological telemetry fetched directly by client")
+    live_aq: Optional[Dict[str, Any]] = Field(None, description="Live atmospheric chemical telemetry fetched directly by client")
 
 
 @app.get("/")
@@ -155,32 +157,28 @@ async def predict_custom_coordinate(req: CoordinatePredictionRequest):
     """Predicts ground-level India NAQI for any coordinate across Vidarbha using live or custom parameters."""
     estimator = get_estimator()
 
-    weather_override = None
-    if any(x is not None for x in [req.temperature_override, req.humidity_override, req.wind_speed_override, req.wind_dir_override]):
-        weather_override = {}
-        if req.temperature_override is not None:
-            weather_override["temperature_2m"] = req.temperature_override
-        if req.humidity_override is not None:
-            weather_override["relative_humidity_2m"] = req.humidity_override
-        if req.wind_speed_override is not None:
-            weather_override["wind_speed_10m"] = req.wind_speed_override
-        if req.wind_dir_override is not None:
-            weather_override["wind_direction_10m"] = req.wind_dir_override
+    weather_override = dict(req.live_weather) if req.live_weather else {}
+    if req.temperature_override is not None:
+        weather_override["temperature_2m"] = req.temperature_override
+    if req.humidity_override is not None:
+        weather_override["relative_humidity_2m"] = req.humidity_override
+    if req.wind_speed_override is not None:
+        weather_override["wind_speed_10m"] = req.wind_speed_override
+    if req.wind_dir_override is not None:
+        weather_override["wind_direction_10m"] = req.wind_dir_override
 
-    aq_override = None
-    if any(x is not None for x in [req.pm25_override, req.pm10_override]):
-        aq_override = {}
-        if req.pm25_override is not None:
-            aq_override["pm2_5"] = req.pm25_override
-        if req.pm10_override is not None:
-            aq_override["pm10"] = req.pm10_override
+    aq_override = dict(req.live_aq) if req.live_aq else {}
+    if req.pm25_override is not None:
+        aq_override["pm2_5"] = req.pm25_override
+    if req.pm10_override is not None:
+        aq_override["pm10"] = req.pm10_override
 
     try:
         result = estimator.predict_coordinate(
             lat=req.latitude,
             lon=req.longitude,
-            weather_override=weather_override,
-            aq_override=aq_override
+            weather_override=weather_override if weather_override else None,
+            aq_override=aq_override if aq_override else None
         )
         return result
     except Exception as e:

@@ -277,10 +277,33 @@ async function selectCoordinate(lat, lon, name = null, cachedNode = null) {
             features = cachedNode.realtime_features;
             stationGround = cachedNode.physical_ground_truth;
         } else {
+            // Fetch live authentic real-time telemetry directly from client browser
+            // (Using client's unthrottled residential/mobile IP to avoid cloud shared-IP 429 rate limits)
+            let liveWeather = null;
+            let liveAq = null;
+            try {
+                const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,dew_point_2m,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,cloud_cover,direct_radiation&timezone=Asia%2FKolkata`;
+                const aqUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=pm2_5,pm10,nitrogen_dioxide,sulphur_dioxide,ozone,carbon_monoxide&timezone=Asia%2FKolkata`;
+
+                const [wRes, aqRes] = await Promise.all([
+                    fetch(weatherUrl, { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).catch(() => null),
+                    fetch(aqUrl, { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).catch(() => null)
+                ]);
+
+                if (wRes && wRes.current) liveWeather = wRes.current;
+                if (aqRes && aqRes.current) liveAq = aqRes.current;
+            } catch (fetchErr) {
+                console.warn('Client-side direct telemetry fetch notice:', fetchErr);
+            }
+
+            const reqPayload = { latitude: lat, longitude: lon };
+            if (liveWeather) reqPayload.live_weather = liveWeather;
+            if (liveAq) reqPayload.live_aq = liveAq;
+
             const resp = await fetch('/api/predict', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ latitude: lat, longitude: lon })
+                body: JSON.stringify(reqPayload)
             });
             if (!resp.ok) {
                 let errDetail = `HTTP ${resp.status}`;
@@ -419,12 +442,15 @@ async function fetchAllNodes() {
         populatePopularCitiesGrid(data.nodes);
 
         // Preload Nagpur on Check Location Page
-        const nagpurNode = data.nodes.find(n => n.city.toLowerCase() === 'nagpur') || data.nodes[0];
+        const nagpurNode = data.nodes ? (data.nodes.find(n => n.city && n.city.toLowerCase() === 'nagpur') || data.nodes[0]) : null;
         if (nagpurNode) {
             selectCoordinate(nagpurNode.coordinates.lat, nagpurNode.coordinates.lon, nagpurNode.name, nagpurNode);
+        } else {
+            selectCoordinate(21.1458, 79.0882, "Nagpur Central");
         }
     } catch (err) {
-        console.error('Live node stream error:', err);
+        console.warn('Live node stream notice, evaluating primary hub:', err);
+        selectCoordinate(21.1458, 79.0882, "Nagpur Central");
     }
 }
 

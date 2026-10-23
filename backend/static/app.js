@@ -430,7 +430,44 @@ function updateReadingPanel(prediction, features, stationGround, locationName) {
 // 7. Fetch Live Data for All Vidarbha Nodes & Populate Popular Cities
 async function fetchAllNodes() {
     try {
-        const resp = await fetch('/api/nodes');
+        let nodeTelemetryList = null;
+        try {
+            // Direct client-side fetch from Open-Meteo & Copernicus CAMS in 1 single fast request
+            // This ensures the ML model runs on the exact CAMS feature distribution it was trained on!
+            const lats = "21.1458,19.9615,20.9374,20.7002";
+            const lons = "79.0882,79.2961,77.7796,77.0082";
+            const nodeIds = ["NAGPUR_CENTRAL", "CHANDRAPUR_MIDC", "AMRAVATI_CENTRAL", "AKOLA_WEST"];
+
+            const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&current=temperature_2m,relative_humidity_2m,dew_point_2m,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,cloud_cover,direct_radiation&timezone=Asia%2FKolkata`;
+            const aqUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lats}&longitude=${lons}&current=pm2_5,pm10,nitrogen_dioxide,sulphur_dioxide,ozone,carbon_monoxide&timezone=Asia%2FKolkata`;
+
+            const [wResp, aqResp] = await Promise.all([
+                fetch(weatherUrl, { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).catch(() => null),
+                fetch(aqUrl, { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).catch(() => null)
+            ]);
+
+            if (Array.isArray(wResp) && Array.isArray(aqResp) && wResp.length === 4 && aqResp.length === 4) {
+                nodeTelemetryList = nodeIds.map((id, idx) => ({
+                    station_id: id,
+                    weather: wResp[idx]?.current || null,
+                    aq: aqResp[idx]?.current || null
+                }));
+            }
+        } catch (clientErr) {
+            console.warn("Client-side multi-node telemetry notice:", clientErr);
+        }
+
+        let resp;
+        if (nodeTelemetryList && nodeTelemetryList.length > 0) {
+            resp = await fetch('/api/nodes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nodes_telemetry: nodeTelemetryList })
+            });
+        } else {
+            resp = await fetch('/api/nodes');
+        }
+
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const data = await resp.json();
         currentNodesData = data;

@@ -185,42 +185,14 @@ class VirtualSensorEstimator:
                 if "current" in data:
                     live_aq = data["current"]
             elif resp.status_code == 429:
-                print(f"[Estimator Notice] Upstream CAMS AQ API 429 rate limit at ({lat}, {lon}). Falling back to live WAQI / CPCB feeds...")
+                print(f"[Estimator Notice] Upstream CAMS AQ API 429 rate limit at ({lat}, {lon}). Falling back to live CPCB physical station feeds...")
                 last_aq_err = "CAMS 429 rate limit"
             else:
                 last_aq_err = f"HTTP {resp.status_code} ({resp.text[:100]})"
         except Exception as err:
             last_aq_err = str(err)
 
-        # Step 2B: Fallback to real-time WAQI feed
-        if not live_aq:
-            try:
-                waqi_url = f"https://api.waqi.info/feed/geo:{lat};{lon}/?token=demo"
-                resp = self.session.get(waqi_url, timeout=7)
-                if resp.status_code == 200:
-                    wdata = resp.json()
-                    if wdata.get("status") == "ok" and "iaqi" in wdata.get("data", {}):
-                        iaqi = wdata["data"]["iaqi"]
-                        pm25_v = float(iaqi.get("pm25", {}).get("v", 35.0))
-                        pm10_v = float(iaqi.get("pm10", {}).get("v", pm25_v * 1.5))
-                        no2_v = float(iaqi.get("no2", {}).get("v", 20.0))
-                        so2_v = float(iaqi.get("so2", {}).get("v", 12.0))
-                        o3_v = float(iaqi.get("o3", {}).get("v", 40.0))
-                        co_v = float(iaqi.get("co", {}).get("v", 400.0))
-                        live_aq = {
-                            "time": datetime.now(IST).strftime("%Y-%m-%dT%H:%M"),
-                            "pm2_5": pm25_v,
-                            "pm10": pm10_v,
-                            "nitrogen_dioxide": no2_v,
-                            "sulphur_dioxide": so2_v,
-                            "ozone": o3_v,
-                            "carbon_monoxide": co_v
-                        }
-                        print(f"[Estimator] Successfully fetched live atmospheric tracers from WAQI for ({lat}, {lon})")
-            except Exception as err:
-                last_aq_err = f"WAQI error: {err}"
-
-        # Step 2C: Fallback to real-time official CPCB monitoring network (live ground-truth spatial IDW)
+        # Step 2B: Fallback to real-time official CPCB monitoring network (live ground-truth spatial IDW in standard ug/m3 units)
         if not live_aq:
             try:
                 ground_df = self.cpcb_client.get_ground_truth_snapshot()
@@ -544,10 +516,14 @@ class VirtualSensorEstimator:
             }
         }
 
-    def get_all_nodes_status(self, force_refresh: bool = False) -> Dict[str, Any]:
+    def get_all_nodes_status(
+        self,
+        force_refresh: bool = False,
+        node_telemetry_map: Optional[Dict[str, Dict[str, Any]]] = None
+    ) -> Dict[str, Any]:
         """Returns comprehensive real-time status for all 4 Vidarbha nodes."""
         current_time = time.time()
-        if not force_refresh and self._cache and (current_time - self._cache_timestamp < self._cache_ttl):
+        if not force_refresh and not node_telemetry_map and self._cache and (current_time - self._cache_timestamp < self._cache_ttl):
             return self._cache
 
         # 1. Fetch live physical ground truth
@@ -585,7 +561,18 @@ class VirtualSensorEstimator:
             lon = meta["longitude"]
 
             try:
-                res = self.predict_coordinate(lat, lon, station_id=st_id)
+                w_override = None
+                aq_override = None
+                if node_telemetry_map and st_id in node_telemetry_map:
+                    w_override = node_telemetry_map[st_id].get("weather")
+                    aq_override = node_telemetry_map[st_id].get("aq")
+
+                res = self.predict_coordinate(
+                    lat, lon,
+                    weather_override=w_override,
+                    aq_override=aq_override,
+                    station_id=st_id
+                )
                 pred_naqi = res["prediction"]["predicted_india_naqi"]
 
                 node_dict = {

@@ -8,7 +8,7 @@ import os
 import sys
 import json
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from fastapi import FastAPI, HTTPException, Query, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -139,6 +139,16 @@ async def health_check():
     }
 
 
+class NodeTelemetryInput(BaseModel):
+    station_id: str
+    weather: Optional[Dict[str, Any]] = None
+    aq: Optional[Dict[str, Any]] = None
+
+
+class NodesBatchSyncRequest(BaseModel):
+    nodes_telemetry: Optional[List[NodeTelemetryInput]] = None
+
+
 @app.get("/api/nodes")
 async def get_vidarbha_nodes(refresh: bool = Query(False, description="Force refresh live API feeds")):
     """Returns real-time estimation, CPCB ground-truth comparison, and live meteorology for all 4 Vidarbha nodes."""
@@ -150,6 +160,26 @@ async def get_vidarbha_nodes(refresh: bool = Query(False, description="Force ref
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Failed to fetch live node states: {str(e)}")
+
+
+@app.post("/api/nodes")
+async def sync_vidarbha_nodes(req: NodesBatchSyncRequest):
+    """Evaluates all 4 Vidarbha nodes using authentic client-fetched Open-Meteo & Copernicus CAMS telemetry."""
+    estimator = get_estimator()
+    try:
+        telemetry_map = {}
+        if req.nodes_telemetry:
+            for item in req.nodes_telemetry:
+                telemetry_map[item.station_id] = {
+                    "weather": item.weather,
+                    "aq": item.aq
+                }
+        data = estimator.get_all_nodes_status(force_refresh=True, node_telemetry_map=telemetry_map if telemetry_map else None)
+        return data
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to evaluate nodes with telemetry: {str(e)}")
 
 
 @app.post("/api/predict")

@@ -19,9 +19,20 @@ from scipy import stats
 
 DS_DIR = Path(__file__).resolve().parent
 DATA_DIR = DS_DIR / "data"
-PROCESSED_DIR = DATA_DIR / "processed"
-HOTSPOTS_DIR = DATA_DIR / "hotspots"
-PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
+FINAL_MAP_DIR = DATA_DIR / "final_map_data"
+EVAL_DIR = DATA_DIR / "evaluation_and_correlations"
+PROCESSED_GRID_DIR = DATA_DIR / "processed_grid"
+RAW_DIR = DATA_DIR / "raw"
+
+FINAL_MAP_DIR.mkdir(parents=True, exist_ok=True)
+EVAL_DIR.mkdir(parents=True, exist_ok=True)
+PROCESSED_GRID_DIR.mkdir(parents=True, exist_ok=True)
+
+def find_raw_file(subfolder: str, filename: str) -> Path:
+    nested = RAW_DIR / subfolder / filename
+    if nested.exists():
+        return nested
+    return RAW_DIR / filename
 
 
 def compute_biomass_hcho_correlations(df: pd.DataFrame) -> dict:
@@ -87,7 +98,7 @@ def compute_biomass_hcho_correlations(df: pd.DataFrame) -> dict:
         print(f"      Fires: {r['total_active_fires']:,} | Mean HCHO: {r['mean_hcho_e15']} | Pearson r: {r['pearson_r']} | Wind: {r['mean_wind_speed_ms']} m/s")
 
     reg_df = pd.DataFrame(regional_metrics)
-    reg_csv = PROCESSED_DIR / "regional_correlations.csv"
+    reg_csv = EVAL_DIR / "regional_correlations.csv"
     reg_df.to_csv(reg_csv, index=False)
     print(f"  [OK] Exported regional metrics CSV: {reg_csv}")
 
@@ -143,7 +154,7 @@ def analyze_era5_wind_transport(df: pd.DataFrame) -> dict:
     wind_features = []
 
     # Load 32-station synoptic meteorology network
-    era5_raw_csv = DATA_DIR / "raw" / "ERA5_reanalysis_met_India.csv"
+    era5_raw_csv = find_raw_file("meteorology_era5", "ERA5_reanalysis_met_India.csv")
     if era5_raw_csv.exists():
         met_df = pd.read_csv(era5_raw_csv)
         avg_met = met_df.groupby(["latitude", "longitude"])[["u_wind_10m", "v_wind_10m", "wind_speed_10m_ms", "wind_direction_deg"]].mean().reset_index()
@@ -232,7 +243,7 @@ def analyze_era5_wind_transport(df: pd.DataFrame) -> dict:
             }
             wind_features.append(feature)
 
-    wind_geojson_path = PROCESSED_DIR / "wind_transport_vectors.geojson"
+    wind_geojson_path = FINAL_MAP_DIR / "wind_transport_vectors.geojson"
     with open(wind_geojson_path, "w") as f:
         json.dump({
             "type": "FeatureCollection",
@@ -261,10 +272,10 @@ def export_full_correlation_report(corr_results: dict, transport_results: dict):
     Saves comprehensive, peer-review grade correlation & transport report JSON
     for FastAPI endpoints and frontend visualization cards.
     """
-    report_file = PROCESSED_DIR / "correlation_report.json"
+    report_file = EVAL_DIR / "correlation_report.json"
     # Read ingestion metadata if available
     ingest_meta = {}
-    ingest_meta_file = DATA_DIR / "raw" / "ingestion_metadata.json"
+    ingest_meta_file = find_raw_file("metadata", "ingestion_metadata.json")
     if ingest_meta_file.exists():
         try:
             with open(ingest_meta_file, "r") as f:
@@ -287,7 +298,9 @@ def export_full_correlation_report(corr_results: dict, transport_results: dict):
 
     # Read spatial clustering evaluation metrics (DBSCAN & Silhouette Score)
     cluster_eval = {}
-    hotspots_summary_file = HOTSPOTS_DIR / "hotspots_summary.json"
+    hotspots_summary_file = EVAL_DIR / "hotspots_summary.json"
+    if not hotspots_summary_file.exists():
+        hotspots_summary_file = DATA_DIR / "hotspots" / "hotspots_summary.json"
     if hotspots_summary_file.exists():
         try:
             with open(hotspots_summary_file, "r") as f:
@@ -333,7 +346,9 @@ def run_pipeline() -> dict:
     print("=" * 80)
     start_t = time.time()
 
-    csv_path = PROCESSED_DIR / "india_hcho_preprocessed_grid.csv"
+    csv_path = PROCESSED_GRID_DIR / "india_hcho_preprocessed_grid.csv"
+    if not csv_path.exists():
+        csv_path = DATA_DIR / "processed" / "india_hcho_preprocessed_grid.csv"
     if not csv_path.exists():
         raise FileNotFoundError(f"Missing {csv_path}. Run 02_preprocessing.py first.")
 

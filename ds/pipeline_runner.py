@@ -39,11 +39,23 @@ except Exception as e:
     step04 = None
 
 DATA_DIR = DS_DIR / "data"
+FINAL_MAP_DIR = DATA_DIR / "final_map_data"
+EVAL_DIR = DATA_DIR / "evaluation_and_correlations"
+PROCESSED_GRID_DIR = DATA_DIR / "processed_grid"
 RAW_DIR = DATA_DIR / "raw"
-PROCESSED_DIR = DATA_DIR / "processed"
-HOTSPOTS_DIR = DATA_DIR / "hotspots"
-SUMMARY_FILE = HOTSPOTS_DIR / "hotspots_summary.json"
-INGESTION_META_FILE = RAW_DIR / "ingestion_metadata.json"
+
+# Legacy directory fallbacks
+HOTSPOTS_DIR = EVAL_DIR if EVAL_DIR.exists() else DATA_DIR / "hotspots"
+PROCESSED_DIR = FINAL_MAP_DIR if FINAL_MAP_DIR.exists() else DATA_DIR / "processed"
+
+# Primary summary and metadata references
+SUMMARY_FILE = EVAL_DIR / "hotspots_summary.json"
+if not SUMMARY_FILE.exists():
+    SUMMARY_FILE = DATA_DIR / "hotspots" / "hotspots_summary.json"
+
+INGESTION_META_FILE = RAW_DIR / "metadata" / "ingestion_metadata.json"
+if not INGESTION_META_FILE.exists():
+    INGESTION_META_FILE = RAW_DIR / "ingestion_metadata.json"
 
 
 def get_pipeline_status() -> dict:

@@ -17,8 +17,18 @@ import netCDF4 as nc
 DS_DIR = Path(__file__).resolve().parent
 DATA_DIR = DS_DIR / "data"
 RAW_DIR = DATA_DIR / "raw"
-PROCESSED_DIR = DATA_DIR / "processed"
-PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
+FINAL_MAP_DIR = DATA_DIR / "final_map_data"
+PROCESSED_GRID_DIR = DATA_DIR / "processed_grid"
+
+FINAL_MAP_DIR.mkdir(parents=True, exist_ok=True)
+PROCESSED_GRID_DIR.mkdir(parents=True, exist_ok=True)
+
+# Helper for locating raw files in nested subfolders or legacy flat raw folder
+def find_raw_file(subfolder: str, filename: str) -> Path:
+    nested = RAW_DIR / subfolder / filename
+    if nested.exists():
+        return nested
+    return RAW_DIR / filename
 
 # Conversion factor: 1 mol/m^2 = 60,221.4 * 10^15 molec/cm^2
 MOL_M2_TO_E15 = 60221.4
@@ -28,8 +38,8 @@ def load_and_filter_s5p_hcho() -> pd.DataFrame:
     """
     Loads Sentinel-5P HCHO NetCDF and applies operational quality assurance filtering.
     """
-    nc_path = RAW_DIR / "S5P_OFFL_L2__HCHO_India_biomass.nc"
-    csv_path = RAW_DIR / "S5P_HCHO_India_points.csv"
+    nc_path = find_raw_file("satellite_hcho", "S5P_OFFL_L2__HCHO_India_biomass.nc")
+    csv_path = find_raw_file("satellite_hcho", "S5P_HCHO_India_points.csv")
 
     print("\n[1/3] Filtering Sentinel-5P TROPOMI HCHO observations (QA >= 0.5)...")
     if csv_path.exists():
@@ -76,7 +86,7 @@ def aggregate_viirs_fires_to_grid(grid_df: pd.DataFrame) -> pd.DataFrame:
     Aggregates Fire Radiative Power (FRP), Fire Count, and Thermal Intensity.
     """
     print("\n[2/3] Harmonizing NASA VIIRS/MODIS Active Fires with TROPOMI Spatial Grid...")
-    fire_csv = RAW_DIR / "VIIRS_MODIS_India_Active_Fires_Raw.csv"
+    fire_csv = find_raw_file("active_fires", "VIIRS_MODIS_India_Active_Fires_Raw.csv")
     if not fire_csv.exists():
         raise FileNotFoundError(f"Missing {fire_csv}. Run 01_data_ingestion.py first.")
 
@@ -142,7 +152,7 @@ def integrate_era5_winds_and_export(df: pd.DataFrame):
     exports processed GeoJSON and tabular datasets.
     """
     print("\n[3/3] Interpolating ERA5 Wind Transport Vectors & Exporting Preprocessed Products...")
-    era5_csv = RAW_DIR / "ERA5_reanalysis_met_India.csv"
+    era5_csv = find_raw_file("meteorology_era5", "ERA5_reanalysis_met_India.csv")
     if era5_csv.exists():
         era5_df = pd.read_csv(era5_csv)
         avg_era5 = era5_df.groupby(["latitude", "longitude"]).agg({
@@ -189,7 +199,7 @@ def integrate_era5_winds_and_export(df: pd.DataFrame):
         df["era5_wind_dir_deg"] = 320.0
 
     # Export Processed Tabular CSV
-    out_csv = PROCESSED_DIR / "india_hcho_preprocessed_grid.csv"
+    out_csv = PROCESSED_GRID_DIR / "india_hcho_preprocessed_grid.csv"
     df.to_csv(out_csv, index=False)
     print(f"  [OK] Exported preprocessed CSV: {out_csv} ({len(df):,} grid cells)")
 
@@ -229,7 +239,7 @@ def integrate_era5_winds_and_export(df: pd.DataFrame):
 
     # Read ingestion metadata if present
     ingest_meta = {}
-    ingest_meta_file = RAW_DIR / "ingestion_metadata.json"
+    ingest_meta_file = find_raw_file("metadata", "ingestion_metadata.json")
     if ingest_meta_file.exists():
         try:
             with open(ingest_meta_file, "r") as f:
@@ -238,7 +248,7 @@ def integrate_era5_winds_and_export(df: pd.DataFrame):
             pass
     obs_date_str = ingest_meta.get("s5p_observation_date", "Latest Daily Pass")
 
-    geojson_path = PROCESSED_DIR / "india_hcho_aligned.geojson"
+    geojson_path = FINAL_MAP_DIR / "india_hcho_aligned.geojson"
     with open(geojson_path, "w") as f:
         json.dump({
             "type": "FeatureCollection",
@@ -255,7 +265,7 @@ def integrate_era5_winds_and_export(df: pd.DataFrame):
     print(f"  [OK] Exported Leaflet GeoJSON grid: {geojson_path} ({len(geojson_features):,} features)")
 
     # Also export Top 500 Active Fire Hotspots GeoJSON for direct map pinpointing
-    raw_fire_csv = RAW_DIR / "VIIRS_MODIS_India_Active_Fires_Raw.csv"
+    raw_fire_csv = find_raw_file("active_fires", "VIIRS_MODIS_India_Active_Fires_Raw.csv")
     if raw_fire_csv.exists():
         raw_fires = pd.read_csv(raw_fire_csv)
         top_fires = raw_fires.sort_values(by="frp", ascending=False).head(600)
@@ -277,7 +287,7 @@ def integrate_era5_winds_and_export(df: pd.DataFrame):
                 }
             })
 
-        fire_geojson_path = PROCESSED_DIR / "active_fires_india_processed.geojson"
+        fire_geojson_path = FINAL_MAP_DIR / "active_fires_india_processed.geojson"
         with open(fire_geojson_path, "w") as f:
             json.dump({
                 "type": "FeatureCollection",

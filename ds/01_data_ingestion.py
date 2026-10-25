@@ -27,7 +27,13 @@ INDIA_BOUNDS = {
 DS_DIR = Path(__file__).resolve().parent
 DATA_DIR = DS_DIR / "data"
 RAW_DIR = DATA_DIR / "raw"
-RAW_DIR.mkdir(parents=True, exist_ok=True)
+HCHO_RAW_DIR = RAW_DIR / "satellite_hcho"
+FIRE_RAW_DIR = RAW_DIR / "active_fires"
+MET_RAW_DIR = RAW_DIR / "meteorology_era5"
+META_RAW_DIR = RAW_DIR / "metadata"
+
+for d in [RAW_DIR, HCHO_RAW_DIR, FIRE_RAW_DIR, MET_RAW_DIR, META_RAW_DIR]:
+    d.mkdir(parents=True, exist_ok=True)
 
 # NASA FIRMS Open Data URLs for South Asia / India
 FIRMS_URLS = {
@@ -46,7 +52,7 @@ def download_nasa_firms_active_fires() -> pd.DataFrame:
     all_dfs = []
 
     for key, url in FIRMS_URLS.items():
-        fname = RAW_DIR / f"{key}.csv"
+        fname = FIRE_RAW_DIR / f"{key}.csv"
         print(f"  -> Downloading {url.split('/')[-1]}...")
         try:
             resp = requests.get(url, timeout=30)
@@ -77,10 +83,20 @@ def download_nasa_firms_active_fires() -> pd.DataFrame:
     # Drop duplicates if any overlapping observations
     india_fires.drop_duplicates(subset=["latitude", "longitude", "acq_date", "acq_time"], inplace=True)
     
-    out_csv = RAW_DIR / "VIIRS_MODIS_India_Active_Fires_Raw.csv"
+    out_csv = FIRE_RAW_DIR / "VIIRS_MODIS_India_Active_Fires_Raw.csv"
     india_fires.to_csv(out_csv, index=False)
     print(f"  -> Total Authentic Fire Detections within India: {len(india_fires):,}")
     print(f"     Saved to: {out_csv}")
+    
+    # Clean up intermediate raw feed files to avoid clutter
+    for key in FIRMS_URLS.keys():
+        tmp_f = FIRE_RAW_DIR / f"{key}.csv"
+        if tmp_f.exists():
+            try:
+                tmp_f.unlink()
+            except Exception:
+                pass
+    
     return india_fires
 
 
@@ -89,8 +105,8 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Dynamic DLR / Copernicus Sentinel-5P TROPOMI Level-3 Daily Repository
 DLR_BASE_URL = "https://download.geoservice.dlr.de/S5P_TROPOMI/files/L3"
-S5P_RAW_NC_CACHE = RAW_DIR / "S5P_DLR_OFFL_01_L3_HCHO_raw.nc"
-INGESTION_META_PATH = RAW_DIR / "ingestion_metadata.json"
+S5P_RAW_NC_CACHE = HCHO_RAW_DIR / "S5P_DLR_OFFL_01_L3_HCHO_raw.nc"
+INGESTION_META_PATH = META_RAW_DIR / "ingestion_metadata.json"
 
 
 def discover_latest_s5p_hcho_url(lookback_days: int = 10, target_date_str: str = None):
@@ -150,7 +166,7 @@ def download_authentic_s5p_hcho_netcdf(target_date_str: str = None) -> tuple:
     Returns: (Path to local NetCDF file, observation_date_str, stream_type, source_url)
     """
     url, datestr, stream = discover_latest_s5p_hcho_url(target_date_str=target_date_str)
-    date_cached_nc = RAW_DIR / f"S5P_DLR_{stream}_01_L3_HCHO_{datestr}.nc"
+    date_cached_nc = HCHO_RAW_DIR / f"S5P_DLR_{stream}_01_L3_HCHO_{datestr}.nc"
 
     if date_cached_nc.exists() and date_cached_nc.stat().st_size > 10 * 1024 * 1024:
         print(f"  -> Using cached authentic Sentinel-5P NetCDF: {date_cached_nc.name} ({date_cached_nc.stat().st_size / (1024*1024):.1f} MB)")
@@ -211,8 +227,8 @@ def ingest_sentinel5p_hcho_observations(fire_df: pd.DataFrame, target_date_str: 
     print("\n[2/3] Ingesting Authentic Sentinel-5P TROPOMI Tropospheric HCHO Observations...")
     raw_nc_file, obs_date_str, stream_type, source_url = download_authentic_s5p_hcho_netcdf(target_date_str=target_date_str)
 
-    nc_path = RAW_DIR / "S5P_OFFL_L2__HCHO_India_biomass.nc"
-    csv_path = RAW_DIR / "S5P_HCHO_India_points.csv"
+    nc_path = HCHO_RAW_DIR / "S5P_OFFL_L2__HCHO_India_biomass.nc"
+    csv_path = HCHO_RAW_DIR / "S5P_HCHO_India_points.csv"
 
     # Define India spatial grid (0.25 degree regular sampling matching S5P / ERA5 resolution)
     lats = np.arange(INDIA_BOUNDS["lat_min"], INDIA_BOUNDS["lat_max"] + 0.25, 0.25)
@@ -520,12 +536,12 @@ def ingest_era5_reanalysis_meteorology() -> pd.DataFrame:
             })
 
     era5_df = pd.DataFrame(era5_records)
-    out_csv = RAW_DIR / "ERA5_reanalysis_met_India.csv"
+    out_csv = MET_RAW_DIR / "ERA5_reanalysis_met_India.csv"
     era5_df.to_csv(out_csv, index=False)
     print(f"  [OK] Saved authentic ERA5 Reanalysis archive: {out_csv} ({len(era5_df):,} records)")
 
     # Also write ERA5 NetCDF archive
-    nc_era5_path = RAW_DIR / "ERA5_reanalysis_met_India.nc"
+    nc_era5_path = MET_RAW_DIR / "ERA5_reanalysis_met_India.nc"
     if nc_era5_path.exists():
         nc_era5_path.unlink()
 

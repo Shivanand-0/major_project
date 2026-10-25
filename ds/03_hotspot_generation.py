@@ -21,9 +21,14 @@ from sklearn.metrics import silhouette_score, calinski_harabasz_score, davies_bo
 
 DS_DIR = Path(__file__).resolve().parent
 DATA_DIR = DS_DIR / "data"
-PROCESSED_DIR = DATA_DIR / "processed"
-HOTSPOTS_DIR = DATA_DIR / "hotspots"
-HOTSPOTS_DIR.mkdir(parents=True, exist_ok=True)
+FINAL_MAP_DIR = DATA_DIR / "final_map_data"
+EVAL_DIR = DATA_DIR / "evaluation_and_correlations"
+PROCESSED_GRID_DIR = DATA_DIR / "processed_grid"
+RAW_DIR = DATA_DIR / "raw"
+
+FINAL_MAP_DIR.mkdir(parents=True, exist_ok=True)
+EVAL_DIR.mkdir(parents=True, exist_ok=True)
+PROCESSED_GRID_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def calculate_getis_ord_gi_star(df: pd.DataFrame, distance_threshold_deg: float = 1.2) -> pd.DataFrame:
@@ -113,7 +118,9 @@ def perform_dbscan_clustering(df: pd.DataFrame) -> Tuple[pd.DataFrame, List[Dict
     """
     print("\n[2/3] Performing DBSCAN Spatial Density Clustering on Biomass Emission Hotspots...")
 
-    raw_fire_csv = DATA_DIR / "raw" / "VIIRS_MODIS_India_Active_Fires_Raw.csv"
+    raw_fire_csv = RAW_DIR / "active_fires" / "VIIRS_MODIS_India_Active_Fires_Raw.csv"
+    if not raw_fire_csv.exists():
+        raw_fire_csv = RAW_DIR / "VIIRS_MODIS_India_Active_Fires_Raw.csv"
     use_raw_fires = raw_fire_csv.exists()
 
     if use_raw_fires:
@@ -374,7 +381,9 @@ def export_hotspot_geospatial_layers(df: pd.DataFrame, cluster_summaries: List[D
 
     # Read ingestion metadata if available
     ingest_meta = {}
-    ingest_meta_file = DATA_DIR / "raw" / "ingestion_metadata.json"
+    ingest_meta_file = RAW_DIR / "metadata" / "ingestion_metadata.json"
+    if not ingest_meta_file.exists():
+        ingest_meta_file = RAW_DIR / "ingestion_metadata.json"
     if ingest_meta_file.exists():
         try:
             with open(ingest_meta_file, "r") as f:
@@ -387,7 +396,7 @@ def export_hotspot_geospatial_layers(df: pd.DataFrame, cluster_summaries: List[D
     ist_offset = pd.Timedelta(hours=5, minutes=30)
     now_ist = now_utc + ist_offset
 
-    hotspot_geojson_path = HOTSPOTS_DIR / "hcho_hotspots_getis_ord.geojson"
+    hotspot_geojson_path = FINAL_MAP_DIR / "hcho_hotspots_getis_ord.geojson"
     with open(hotspot_geojson_path, "w") as f:
         json.dump({
             "type": "FeatureCollection",
@@ -427,7 +436,7 @@ def export_hotspot_geospatial_layers(df: pd.DataFrame, cluster_summaries: List[D
             "properties": props
         })
 
-    cluster_geojson_path = HOTSPOTS_DIR / "biomass_clusters_dbscan.geojson"
+    cluster_geojson_path = FINAL_MAP_DIR / "biomass_clusters_dbscan.geojson"
     with open(cluster_geojson_path, "w") as f:
         json.dump({
             "type": "FeatureCollection",
@@ -443,7 +452,7 @@ def export_hotspot_geospatial_layers(df: pd.DataFrame, cluster_summaries: List[D
     print(f"  [OK] Exported DBSCAN Clusters GeoJSON: {cluster_geojson_path}")
 
     # 3. Comprehensive Summary JSON for Backend Dashboard API
-    summary_path = HOTSPOTS_DIR / "hotspots_summary.json"
+    summary_path = EVAL_DIR / "hotspots_summary.json"
     with open(summary_path, "w") as f:
         json.dump({
             "timestamp_utc": now_utc.isoformat(),
@@ -479,7 +488,9 @@ def run_pipeline() -> dict:
     print("=" * 80)
     start_t = time.time()
 
-    csv_path = PROCESSED_DIR / "india_hcho_preprocessed_grid.csv"
+    csv_path = PROCESSED_GRID_DIR / "india_hcho_preprocessed_grid.csv"
+    if not csv_path.exists():
+        csv_path = DATA_DIR / "processed" / "india_hcho_preprocessed_grid.csv"
     if not csv_path.exists():
         raise FileNotFoundError(f"Missing {csv_path}. Run 02_preprocessing.py first.")
 

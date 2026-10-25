@@ -245,13 +245,17 @@ async def get_cpcb_standards():
 # HCHO BIOMASS BURNING & SATELLITE SURVEILLANCE ENDPOINTS (PAN-INDIA)
 # ==============================================================================
 DS_DATA_DIR = BACKEND_DIR.parent / "ds" / "data"
+FINAL_MAP_DIR = DS_DATA_DIR / "final_map_data"
+EVAL_DIR = DS_DATA_DIR / "evaluation_and_correlations"
 
 @app.get("/api/hcho/status")
 async def get_hcho_pipeline_status():
     """Returns real-time data freshness, observation date, and sync status of the daily HCHO pipeline."""
     if get_pipeline_status:
         return get_pipeline_status()
-    summary_file = DS_DATA_DIR / "hotspots" / "hotspots_summary.json"
+    summary_file = EVAL_DIR / "hotspots_summary.json"
+    if not summary_file.exists():
+        summary_file = DS_DATA_DIR / "hotspots" / "hotspots_summary.json"
     if summary_file.exists():
         with open(summary_file, "r") as f:
             data = json.load(f)
@@ -289,8 +293,12 @@ async def refresh_hcho_daily_pipeline(background_tasks: BackgroundTasks, force: 
 @app.get("/api/hcho/summary")
 async def get_hcho_summary():
     """Returns Pan-India S5P HCHO, VIIRS fire count, and Getis-Ord hotspot analytical summary."""
-    summary_file = DS_DATA_DIR / "hotspots" / "hotspots_summary.json"
-    corr_file = DS_DATA_DIR / "processed" / "correlation_report.json"
+    summary_file = EVAL_DIR / "hotspots_summary.json"
+    if not summary_file.exists():
+        summary_file = DS_DATA_DIR / "hotspots" / "hotspots_summary.json"
+    corr_file = EVAL_DIR / "correlation_report.json"
+    if not corr_file.exists():
+        corr_file = DS_DATA_DIR / "processed" / "correlation_report.json"
     
     if not summary_file.exists():
         raise HTTPException(status_code=404, detail="Hotspots summary not found. Run ds pipeline.")
@@ -338,8 +346,12 @@ async def get_hcho_summary():
 @app.get("/api/hcho/hotspots")
 async def get_hcho_hotspots():
     """Returns Getis-Ord Gi* significant HCHO hotspot points and DBSCAN cluster polygons."""
-    gi_file = DS_DATA_DIR / "hotspots" / "hcho_hotspots_getis_ord.geojson"
-    cluster_file = DS_DATA_DIR / "hotspots" / "biomass_clusters_dbscan.geojson"
+    gi_file = FINAL_MAP_DIR / "hcho_hotspots_getis_ord.geojson"
+    if not gi_file.exists():
+        gi_file = DS_DATA_DIR / "hotspots" / "hcho_hotspots_getis_ord.geojson"
+    cluster_file = FINAL_MAP_DIR / "biomass_clusters_dbscan.geojson"
+    if not cluster_file.exists():
+        cluster_file = DS_DATA_DIR / "hotspots" / "biomass_clusters_dbscan.geojson"
     
     gi_geojson = json.load(open(gi_file)) if gi_file.exists() else {"type": "FeatureCollection", "features": []}
     cluster_geojson = json.load(open(cluster_file)) if cluster_file.exists() else {"type": "FeatureCollection", "features": []}
@@ -353,7 +365,9 @@ async def get_hcho_hotspots():
 @app.get("/api/hcho/fires")
 async def get_active_fires():
     """Returns authentic NASA VIIRS & MODIS active fire detections across India."""
-    fires_file = DS_DATA_DIR / "processed" / "active_fires_india_processed.geojson"
+    fires_file = FINAL_MAP_DIR / "active_fires_india_processed.geojson"
+    if not fires_file.exists():
+        fires_file = DS_DATA_DIR / "processed" / "active_fires_india_processed.geojson"
     if not fires_file.exists():
         raise HTTPException(status_code=404, detail="Active fires GeoJSON not found.")
     with open(fires_file, "r") as f:
@@ -363,7 +377,9 @@ async def get_active_fires():
 @app.get("/api/hcho/grid")
 async def get_hcho_grid():
     """Returns Sentinel-5P TROPOMI tropospheric formaldehyde column concentration mesh."""
-    grid_file = DS_DATA_DIR / "processed" / "india_hcho_aligned.geojson"
+    grid_file = FINAL_MAP_DIR / "india_hcho_aligned.geojson"
+    if not grid_file.exists():
+        grid_file = DS_DATA_DIR / "processed" / "india_hcho_aligned.geojson"
     if not grid_file.exists():
         raise HTTPException(status_code=404, detail="HCHO grid GeoJSON not found.")
     with open(grid_file, "r") as f:
@@ -373,7 +389,9 @@ async def get_hcho_grid():
 @app.get("/api/hcho/correlation")
 async def get_hcho_correlation():
     """Returns statistical correlation and ERA5 wind transport analysis report."""
-    corr_file = DS_DATA_DIR / "processed" / "correlation_report.json"
+    corr_file = EVAL_DIR / "correlation_report.json"
+    if not corr_file.exists():
+        corr_file = DS_DATA_DIR / "processed" / "correlation_report.json"
     if not corr_file.exists():
         raise HTTPException(status_code=404, detail="Correlation report not found.")
     with open(corr_file, "r") as f:
@@ -383,7 +401,9 @@ async def get_hcho_correlation():
 @app.get("/api/hcho/wind")
 async def get_hcho_wind_vectors():
     """Returns ECMWF ERA5 10m synoptic wind transport vectors over India."""
-    wind_file = DS_DATA_DIR / "processed" / "wind_transport_vectors.geojson"
+    wind_file = FINAL_MAP_DIR / "wind_transport_vectors.geojson"
+    if not wind_file.exists():
+        wind_file = DS_DATA_DIR / "processed" / "wind_transport_vectors.geojson"
     if not wind_file.exists():
         raise HTTPException(status_code=404, detail="Wind transport GeoJSON not found.")
     with open(wind_file, "r") as f:

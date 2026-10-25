@@ -199,26 +199,29 @@ For $\theta_{\text{met}} = 74.8^\circ$, $\theta_{\text{flow}} = 254.8^\circ$ (po
 ```graphql
 ds/
 ├── data/
-│   ├── raw/                                  # Authentic raw satellite NetCDF & NASA CSV feeds
-│   │   ├── S5P_OFFL_L2__HCHO_India_biomass.nc # Sentinel-5P NetCDF4 observations
-│   │   ├── S5P_HCHO_India_points.csv         # Gridded observation points across India
-│   │   ├── VIIRS_MODIS_India_Active_Fires_Raw.csv # Authentic NASA FIRMS detections
-│   │   ├── viirs_snpp_7d.csv                # Suomi-NPP 375m FIRMS feed
-│   │   ├── viirs_noaa20_24h.csv             # NOAA-20 375m FIRMS feed
-│   │   ├── modis_c61_24h.csv                # MODIS Collection 6.1 feed
-│   │   ├── ERA5_reanalysis_met_India.csv     # Synoptic network across 32 corridors
-│   │   └── ingestion_metadata.json          # Observation dates, stream, and timestamps
-│   ├── processed/                            # Harmonized grids, GeoJSON vectors, & statistical reports
-│   │   ├── india_hcho_preprocessed_grid.csv  # Spatially merged multi-source tabular grid
-│   │   ├── india_hcho_aligned.geojson        # QA-filtered grid cells
-│   │   ├── active_fires_india_processed.geojson # Filtered fire points with FRP & metadata
-│   │   ├── wind_transport_vectors.geojson    # 930 regular 1.0° wind vector LineStrings
-│   │   ├── regional_correlations.csv         # Regional regression metrics
-│   │   └── correlation_report.json           # Analytical statistics & transport parameters
-│   └── hotspots/                             # Spatial autocorrelation & cluster geometries
-│       ├── hcho_hotspots_getis_ord.geojson   # Statistically significant Getis-Ord hotspots
-│       ├── biomass_clusters_dbscan.geojson   # 58 discrete regional plume polygons
-│       └── hotspots_summary.json             # Summary KPIs & cluster rankings
+│   ├── final_map_data/                       # [Tier 1] Final visual layers rendered directly on the Leaflet map
+│   │   ├── india_hcho_aligned.geojson        # Continuous Sentinel-5P HCHO column 0.25° mesh
+│   │   ├── active_fires_india_processed.geojson # NASA VIIRS/MODIS fire detections with FRP
+│   │   ├── wind_transport_vectors.geojson    # ECMWF ERA5 synoptic 10m wind transport vectors
+│   │   ├── hcho_hotspots_getis_ord.geojson   # Getis-Ord Gi* statistical hotspot classifications
+│   │   └── biomass_clusters_dbscan.geojson   # DBSCAN delineated biomass burning plume polygons
+│   ├── evaluation_and_correlations/          # [Tier 2] Statistical models, peer-review metrics & KPIs
+│   │   ├── hotspots_summary.json             # Master summary KPIs, DBSCAN metrics, cluster ranking
+│   │   ├── correlation_report.json           # OLS bivariate regressions, Pearson r, Spearman rho, wind transport
+│   │   └── regional_correlations.csv         # 7 agro-ecological zones statistical breakdown
+│   ├── processed_grid/                       # [Tier 3] Harmonized master analytical table
+│   │   └── india_hcho_preprocessed_grid.csv  # Unified 0.25° x 0.25° table: S5P HCHO + VIIRS + ERA5
+│   └── raw/                                  # [Tier 4] Telemetry & sensor ingestions sorted by source
+│       ├── satellite_hcho/
+│       │   ├── S5P_OFFL_L2__HCHO_India_biomass.nc # Cropped Sentinel-5P TROPOMI NetCDF-4
+│       │   └── S5P_HCHO_India_points.csv     # Extracted HCHO observation points table
+│       ├── active_fires/
+│       │   └── VIIRS_MODIS_India_Active_Fires_Raw.csv # Master unified raw fire catalog across India
+│       ├── meteorology_era5/
+│       │   ├── ERA5_reanalysis_met_India.csv # Hourly synoptic meteorological corridor records
+│       │   └── ERA5_reanalysis_met_India.nc  # 10m wind vector NetCDF-4 grid
+│       └── metadata/
+│           └── ingestion_metadata.json       # Pipeline run metadata and satellite stream log
 ├── 01_data_ingestion.py                      # Ingests NASA FIRMS, S5P NetCDF, and 32-station ERA5 met
 ├── 02_preprocessing.py                       # QA filtering, grid harmonization, and IDW spatial interpolation
 ├── 03_hotspot_generation.py                  # Computes Getis-Ord Gi* Z-scores and 58-cluster DBSCAN
